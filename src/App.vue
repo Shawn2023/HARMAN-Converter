@@ -340,14 +340,13 @@ function convertHexToJson(val) {
             const entry = list[key]
             if (!entry?.category) continue
             const pidLower  = pidStr.toLowerCase()
-            const asBase    = `/proxy/appstorage/${brand}/app_config/dev/${entry.category}/${pidLower}`
-            const cfgBase   = `https://appstorage-dev.onecloud.harman.com/${brand}/app_config/dev/${entry.category}/${pidLower}`
+            const asBase    = `https://appstorage-dev.onecloud.harman.com/${brand}/app_config/dev/${entry.category}/${pidLower}`
             deviceCard.value = {
               pid,
               colorId:    colorId || '0x00',
               modelName:  entry.model_name || '',
               imgUrl:     `${asBase}/${colorStr}.png`,
-              configUrl:  `${cfgBase}/model_config.json`,
+              configUrl:  `${asBase}/model_config.json`,
               loading:    false,
             }
             return

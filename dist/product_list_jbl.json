@@ -1,0 +1,541 @@
+{
+  "web_assets_ver": "261801",
+  "cross_auracast_ver": "dev",
+  "product_list": {
+    "214d": {
+      "model_name": "One Commander",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/one_commander.zip"
+    },
+    "212c": {
+      "model_name": "JBL Charge 5 Wi-Fi SE",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/portable_wifi.zip"
+    },
+    "211d": {
+      "model_name": "JBL BAR 1300MK2",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "211c": {
+      "model_name": "JBL BAR 1000MK2",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "211b": {
+      "model_name": "JBL BAR 800MK2",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "213a": {
+      "model_name": "JBL BAR 700MK2",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "211a": {
+      "model_name": "JBL BAR 500MK2",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "2119": {
+      "model_name": "JBL BAR 300MK2",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "208c": {
+      "model_name": "JBL Charge 5 Wi-Fi",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/portable_wifi.zip"
+    },
+    "2075": {
+      "model_name": "JBL Boombox 3 Wi-Fi",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/portable_wifi.zip"
+    },
+    "2095": {
+      "model_name": "JBL PartyBox Ultimate",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "orientation": "portrait",
+      "device_control_package": "one_platform/device_control/partybox_ultimate.zip"
+    },
+    "2071": {
+      "model_name": "JBL BAR 300",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "2072": {
+      "model_name": "JBL BAR 500",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "20d1": {
+      "model_name": "JBL BAR 700",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "2073": {
+      "model_name": "JBL BAR 800",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "2074": {
+      "model_name": "JBL BAR 1000",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "208b": {
+      "model_name": "JBL BAR 1300",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "20bf": {
+      "model_name": "JBL Authentics 200",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/authentics.zip"
+    },
+    "20c0": {
+      "model_name": "JBL Authentics 300",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/authentics.zip"
+    },
+    "20c1": {
+      "model_name": "JBL Authentics 500",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/authentics.zip"
+    },
+    "2108": {
+      "model_name": "JBL PartyLight Beam",
+      "category": "partylight",
+      "adv_format": "adv_format_7",
+      "device_control_package": "partylight/device_control/party_light.zip"
+    },
+    "2109": {
+      "model_name": "JBL PartyLight Stick",
+      "category": "partylight",
+      "adv_format": "adv_format_7",
+      "device_control_package": "partylight/device_control/party_light.zip"
+    },
+    "1f5d": {
+      "model_name": "JBL PartyBox 310",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "device_control_package": "partybox/device_control/partybox_gen2.zip"
+    },
+    "1f5f": {
+      "model_name": "JBL PartyBox 110",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "device_control_package": "partybox/device_control/partybox_gen2.zip"
+    },
+    "1f61": {
+      "model_name": "JBL PartyBox 710",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "device_control_package": "partybox/device_control/partybox_gen2.zip"
+    },
+    "2062": {
+      "model_name": "JBL PartyBox Encore",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen2.zip"
+    },
+    "2063": {
+      "model_name": "JBL PartyBox Encore Essential",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen2.zip"
+    },
+    "20e2": {
+      "model_name": "JBL PartyBox Club 120",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen3.zip"
+    },
+    "20dd": {
+      "model_name": "JBL PartyBox Stage 320",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen3.zip"
+    },
+    "2120": {
+      "model_name": "JBL PartyBox 520",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen3.zip"
+    },
+    "2156": {
+      "model_name": "JBL PartyBox 720",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen3.zip"
+    },
+    "212e": {
+      "model_name": "JBL PartyBox Encore Essential 2",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen3.zip"
+    },
+    "2118": {
+      "model_name": "JBL PartyBox Encore 2",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen3.zip"
+    },
+    "215b": {
+      "model_name": "JBL PartyBox OTG 2",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "device_control_package": "partybox/device_control/partybox_gen3.zip"
+    },
+    "2173": {
+      "model_name": "JBL PartyBox Encore 2 Plus",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen3.zip"
+    },
+    "216a": {
+      "model_name": "JBL PartyBox OTG2 Plus",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "device_control_package": "partybox/device_control/partybox_gen3.zip"
+    },
+    "216b": {
+      "model_name": "JBL PartyBox 130",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen4.zip"
+    },
+    "218c": {
+      "model_name": "JBL PartyBox 330",
+      "category": "partybox",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "partybox/device_control/partybox_gen4.zip"
+    },
+    "2182": {
+      "model_name": "JBL EasySing Mic",
+      "category": "accessary"
+    },
+    "21b1": {
+      "model_name": "JBL EasySing Mic Mini",
+      "category": "accessary",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "device_control_package": "accessary/device_control/easysing_mics_mini.zip"
+    },
+    "2183": {
+      "model_name": "JBL EasySing Mic Mini DUO",
+      "category": "accessary",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "device_control_package": "accessary/device_control/easysing_mics_mini.zip"
+    },
+    "2117": {
+      "model_name": "JBL Horizon 3",
+      "category": "home_bt",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "device_control_package": "home_bt/device_control/horizon3.zip"
+    },
+    "2111": {
+      "model_name": "JBL BandBox Trio",
+      "category": "bandbox",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "bandbox/device_control/band_box.zip"
+    },
+    "211f": {
+      "model_name": "JBL BandBox Solo",
+      "category": "bandbox",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "bandbox/device_control/band_box.zip"
+    },
+    "20dc": {
+      "model_name": "JBL Xtreme 4",
+      "category": "portable",
+      "adv_format": "adv_format_2",
+      "cmd_format": "cmd_format_2",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "20e4": {
+      "model_name": "JBL Go 4",
+      "category": "portable",
+      "adv_format": "adv_format_2",
+      "cmd_format": "cmd_format_2",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "20f5": {
+      "model_name": "JBL Clip 5",
+      "category": "portable",
+      "adv_format": "adv_format_2",
+      "cmd_format": "cmd_format_2",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "2107": {
+      "model_name": "JBL Flip 7",
+      "category": "portable",
+      "adv_format": "adv_format_2",
+      "cmd_format": "cmd_format_2",
+      "orientation": "portrait",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "20e3": {
+      "model_name": "JBL Charge 6",
+      "category": "portable",
+      "adv_format": "adv_format_2",
+      "cmd_format": "cmd_format_2",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "214c": {
+      "model_name": "JBL Tuner 3",
+      "category": "portable",
+      "adv_format": "adv_format_2",
+      "cmd_format": "cmd_format_2",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "214e": {
+      "model_name": "JBL BoomBox 4",
+      "category": "portable",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "2132": {
+      "model_name": "JBL Grip",
+      "category": "portable",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "orientation": "portrait",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "218b": {
+      "model_name": "JBL Pulse 6",
+      "category": "portable",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "orientation": "portrait",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "2167": {
+      "model_name": "JBL PartyBox Ultimate 2",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "orientation": "portrait",
+      "device_control_package": "one_platform/device_control/one_partybox.zip"
+    },
+    "2168": {
+      "model_name": "JBL GO 5",
+      "category": "portable",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "2169": {
+      "model_name": "JBL Xtreme 5",
+      "category": "portable",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "2185": {
+      "model_name": "JBL Flip Essential 3 SE",
+      "category": "portable",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "orientation": "portrait",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "218a": {
+      "model_name": "JBL Charge Essential 3 SE",
+      "category": "portable",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "orientation": "portrait",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "2176": {
+      "model_name": "JBL Cove P1",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "orientation": "portrait",
+      "device_control_package": "one_platform/device_control/cove.zip"
+    },
+    "2177": {
+      "model_name": "JBL Cove M1",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "orientation": "portrait",
+      "device_control_package": "one_platform/device_control/cove.zip"
+    },
+    "2178": {
+      "model_name": "JBL Cove X1",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "orientation": "portrait",
+      "device_control_package": "one_platform/device_control/cove.zip"
+    },
+    "215c": {
+      "model_name": "JBLGo4DuoL",
+      "category": "portable",
+      "adv_format": "adv_format_2",
+      "cmd_format": "cmd_format_2",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "2181": {
+      "model_name": "JBLGo4DuoR",
+      "category": "portable",
+      "adv_format": "adv_format_2",
+      "cmd_format": "cmd_format_2",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "21a2": {
+      "model_name": "JBL Clip 6",
+      "category": "portable",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "portable/device_control/portable.zip"
+    },
+    "21ba": {
+      "model_name": "JBL Authentics 20",
+      "category": "home_bt",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "home_bt/device_control/authentics_bt.zip"
+    },
+    "21bb": {
+      "model_name": "JBL Authentics 30",
+      "category": "home_bt",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "home_bt/device_control/authentics_bt.zip"
+    },
+    "21bd": {
+      "model_name": "JBL Cove A1",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/one_cove.zip"
+    },
+    "21c3": {
+      "model_name": "JBL Spinner 2",
+      "category": "luxury",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "luxury/device_control/spinner.zip"
+    },
+    "21a6": {
+      "model_name": "JBL BassPro Go2",
+      "category": "cam",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "device_control_package": "cam/device_control/basspro_go.zip"
+    }
+  },
+  "app_feature_config": [
+    "customer_service",
+    "diagnosis_report",
+    "fake_battery_notification",
+    "usb_working_mode_first_confirm"
+  ],
+  "help_url": {
+    "wifi_setup_fail_url": "https://gtly.to/iPKcbaTcO",
+    "learn_more_about_va": "https://www.jbl.com/mae"
+  },
+  "third_party_config": "third_party_url.json"
+}

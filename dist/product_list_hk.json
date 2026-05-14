@@ -1,0 +1,111 @@
+{
+  "cross_auracast_ver": "dev",
+  "product_list": {
+    "208d": {
+      "model_name": "Harman Kardon Enchant Speaker",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "orientation": "portrait",
+      "device_control_package": "one_platform/device_control/portable_wifi.zip"
+    },
+    "20de": {
+      "model_name": "Harman Kardon Enchant 900",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "20df": {
+      "model_name": "Harman Kardon Enchant 1100",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "source",
+      "device_control_package": "one_platform/device_control/soundbar.zip"
+    },
+    "20e1": {
+      "model_name": "Harman Kardon Enchant Sub",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "device_control_package": "one_platform/device_control/enchant_sub.zip"
+    },
+    "210b": {
+      "model_name": "Harman Kardon Onyx Studio 9",
+      "category": "home_bt",
+      "adv_format": "adv_format_3",
+      "cmd_format": "cmd_format_3",
+      "orientation": "portrait",
+      "device_control_package": "home_bt/device_control/onyx_studio.zip"
+    },
+    "2131": {
+      "model_name": "SoundSticks 5",
+      "category": "home_bt",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "auth_button": "plus",
+      "device_control_package": "home_bt/device_control/hk_studio.zip"
+    },
+    "212d": {
+      "model_name": "Aura Studio 5",
+      "category": "home_bt",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "auth_button": "plus",
+      "device_control_package": "home_bt/device_control/hk_studio.zip"
+    },
+    "2159": {
+      "model_name": "SoundSticks 5 Wi-Fi",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "device_control_package": "one_platform/device_control/hk_studio_wifi.zip"
+    },
+    "215a": {
+      "model_name": "Aura Studio 5 Wi-Fi",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "plus",
+      "device_control_package": "one_platform/device_control/hk_studio_wifi.zip"
+    },
+    "2172": {
+      "model_name": "Harman Kardon Luna 2",
+      "category": "home_bt",
+      "adv_format": "adv_format_4",
+      "cmd_format": "cmd_format_3",
+      "auth_button": "plus",
+      "device_control_package": "home_bt/device_control/hk_studio.zip"
+    },
+    "21bc": {
+      "model_name": "Harman Kardon Allure 2",
+      "category": "home_bt",
+      "adv_format": "adv_format_6",
+      "cmd_format": "cmd_format_4",
+      "auth_button": "plus",
+      "orientation": "portrait",
+      "device_control_package": "home_bt/device_control/allure2.zip"
+    },
+    "2198": {
+      "model_name": "Halo",
+      "category": "one_platform",
+      "adv_format": "adv_format_5",
+      "cmd_format": "cmd_format_1",
+      "auth_button": "moment",
+      "orientation": "portrait",
+      "device_control_package": "one_platform/device_control/hk_studio_wifi.zip"
+    }
+  },
+  "app_feature_config": [
+    "customer_service",
+    "diagnosis_report"
+  ],
+  "help_url": {
+    "wifi_setup_fail_url": "https://gtly.to/8lcF6wGCN"
+  },
+  "third_party_config": "third_party_url.json"
+}

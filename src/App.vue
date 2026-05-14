@@ -228,7 +228,10 @@ const _productListCache = {}
 async function fetchProductList(brand) {
   if (_productListCache[brand]) return _productListCache[brand]
   try {
-    const r = await fetch(`/proxy/appstorage/${brand}/app_config/dev/product_list.json`)
+    const file = brand === 'jbl_one'
+      ? `${import.meta.env.BASE_URL}product_list_jbl.json`
+      : `${import.meta.env.BASE_URL}product_list_hk.json`
+    const r = await fetch(file)
     if (!r.ok) return null
     const data = await r.json()
     _productListCache[brand] = data
@@ -244,29 +247,20 @@ async function resolveDeviceCard(pidHex, colorIdHex) {
   const colorStr   = colorNum.toString(16).toUpperCase().padStart(2, '0')
 
   for (const brand of ['jbl_one', 'hk_one']) {
-    const list = await fetchProductList(brand)
-    if (!list) continue
-    // product_list.json is expected to be an array of { pid, category, ... }
-    // or an object keyed by category containing arrays
-    let category = null
-    if (Array.isArray(list)) {
-      const found = list.find(p => parseInt(p.pid, 16) === pidNum || p.pid === pidStr)
-      if (found) category = found.category
-    } else {
-      // object form: { category: [{ pid, ... }] }
-      for (const [cat, items] of Object.entries(list)) {
-        if (Array.isArray(items) && items.find(p => parseInt(p.pid, 16) === pidNum)) {
-          category = cat; break
-        }
-      }
-    }
-    if (!category) continue
-    const base = `https://appstorage-dev.onecloud.harman.com/${brand}/app_config/dev/${category}/${pidStr}`
+    const data = await fetchProductList(brand)
+    if (!data) continue
+    const productList = data.product_list ?? data
+    const pidKey      = pidNum.toString(16).toLowerCase().padStart(4, '0')
+    const entry       = productList[pidKey]
+    if (!entry) continue
+    const category = entry.category
+    const base = `https://appstorage-dev.onecloud.harman.com/${brand}/app_config/dev/${category}/${pidStr.toLowerCase()}`
     return {
-      pid:       pidHex,
-      colorId:   colorIdHex,
-      imgUrl:    `${base}/${colorStr}.png`,
-      configUrl: `${base}/model_config.json`,
+      pid:        pidHex,
+      colorId:    colorIdHex,
+      modelName:  entry.model_name,
+      imgUrl:     `${base}/${colorStr}.png`,
+      configUrl:  `${base}/model_config.json`,
     }
   }
   return null

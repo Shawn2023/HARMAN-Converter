@@ -628,6 +628,9 @@ export function parseHex(hexStr) {
   if (bytes.length === 0) return null
 
   // Command Packet: starts with 0xDD00 or 0xDD01
+  if (bytes.length >= 8 && bytes[0] === 0xDD && (bytes[1] === 0x00 || bytes[1] === 0x01)) {
+    return parseCommandPacket(bytes)
+  }
   if (bytes.length >= 8) {
     const id = readU16(bytes, 0)
     if (id === 0xDD00 || id === 0xDD01) {
@@ -650,6 +653,592 @@ export function parseHex(hexStr) {
   return { type: 'Unknown', note: 'Cannot identify packet format', raw: bytesToHex(bytes), length: bytes.length }
 }
 
+const FORMAT_LEGEND = [
+  { kind: 'mask', label: 'mask' },
+  { kind: 'feature-id', label: 'featureID' },
+  { kind: 'length', label: 'length' },
+  { kind: 'pid', label: 'pid' },
+]
+
+export function formatHexByBlocks(hexStr) {
+  return formatHexByBlocksDetailed(hexStr).formatted
+}
+
+export function formatHexByBlocksDetailed(hexStr) {
+  const bytes = hexToBytes(hexStr.trim())
+  if (bytes.length === 0) return { formatted: '', blocks: [], legend: FORMAT_LEGEND }
+
+  const classifier = classifyHexBytes(bytes)
+  let blocks = []
+
+  if (classifier === 'command') {
+    blocks = formatCommandBlocks(bytes)
+  } else if (classifier === 'adv') {
+    blocks = formatAdvBlocks(bytes)
+  } else if (classifier === 'ble-payload') {
+    blocks = formatBLEPayloadBlocks(bytes)
+  } else {
+    blocks = [makeBlock(bytes, 'value')]
+  }
+
+  return {
+    formatted: blocks.map(b => b.text).filter(Boolean).join(' '),
+    blocks,
+    legend: FORMAT_LEGEND,
+  }
+}
+
+function makeBlock(arr, kind = 'value') {
+  return {
+    kind,
+    text: arr.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(''),
+  }
+}
+
+function formatCommandBlocks(bytes) {
+  if (bytes.length < 8) return [makeBlock(bytes, 'value')]
+
+  const blocks = [
+    makeBlock(bytes.slice(0, 2), 'identifier'),
+    makeBlock(bytes.slice(2, 4), 'command-id'),
+    makeBlock(bytes.slice(4, 5), 'value'),
+    makeBlock(bytes.slice(5, 6), 'value'),
+    makeBlock(bytes.slice(6, 8), 'length'),
+  ]
+
+  const commandId = readU16(bytes, 2)
+  const payloadLength = readU16(bytes, 6)
+  const available = Math.max(0, Math.min(payloadLength, bytes.length - 8))
+  const payload = bytes.slice(8, 8 + available)
+  blocks.push(...formatCommandPayloadBlocks(commandId, payload))
+
+  const trailingStart = 8 + available
+  if (trailingStart < bytes.length) blocks.push(makeBlock(bytes.slice(trailingStart), 'value'))
+
+  return blocks
+}
+
+function formatCommandPayloadBlocks(commandId, payload) {
+  if (payload.length === 0) return []
+
+  const blocks = []
+  let cursor = 0
+
+  if (commandId === 0x0001) {
+    const looksLikeResponse = payload.length % 2 !== 0 || (payload.length >= 2 && readU16(payload, 0) === 0x0000)
+    if (looksLikeResponse) {
+      if (payload.length >= 2) {
+        blocks.push(makeBlock(payload.slice(0, 2), 'value'))
+        cursor = 2
+      }
+      blocks.push(...formatFeatureTriples(payload, cursor))
+      return blocks
+    }
+
+    while (cursor + 2 <= payload.length) {
+      blocks.push(makeBlock(payload.slice(cursor, cursor + 2), 'feature-id'))
+      cursor += 2
+    }
+    if (cursor < payload.length) blocks.push(makeBlock(payload.slice(cursor), 'value'))
+    return blocks
+  }
+
+  if (commandId === 0x0002) {
+    if (payload.length === 2) return [makeBlock(payload, 'value')]
+    return formatFeatureTriples(payload, 0)
+  }
+
+  if (commandId === 0x0003 || commandId === 0x0004) {
+    if (payload.length >= 2) {
+      blocks.push(makeBlock(payload.slice(0, 2), 'value'))
+      cursor = 2
+    }
+    blocks.push(...formatFeatureTriples(payload, cursor))
+    return blocks
+  }
+
+  return [makeBlock(payload, 'value')]
+}
+
+function formatFeatureTriples(payload, startCursor) {
+  const blocks = []
+  let cursor = startCursor
+
+  while (cursor + 4 <= payload.length) {
+    const valueSize = readU16(payload, cursor + 2)
+    const valueStart = cursor + 4
+    const valueEnd = valueStart + valueSize
+
+    blocks.push(makeBlock(payload.slice(cursor, cursor + 2), 'feature-id'))
+    blocks.push(makeBlock(payload.slice(cursor + 2, cursor + 4), 'length'))
+
+    if (valueEnd <= payload.length) {
+      blocks.push(makeBlock(payload.slice(valueStart, valueEnd), 'value'))
+      cursor = valueEnd
+    } else {
+      blocks.push(makeBlock(payload.slice(valueStart), 'value'))
+      return blocks
+    }
+  }
+
+  if (cursor < payload.length) blocks.push(makeBlock(payload.slice(cursor), 'value'))
+  return blocks
+}
+
+function formatAdvBlocks(bytes) {
+  const blocks = []
+  let cursor = 0
+
+  while (cursor < bytes.length) {
+    if (cursor + 2 > bytes.length) {
+      blocks.push(makeBlock(bytes.slice(cursor), 'value'))
+      break
+    }
+
+    const len = bytes[cursor]
+    const structEnd = cursor + 1 + len
+    blocks.push(makeBlock(bytes.slice(cursor, cursor + 1), 'length'))
+
+    if (len === 0) {
+      if (cursor + 1 < bytes.length) blocks.push(makeBlock(bytes.slice(cursor + 1), 'value'))
+      break
+    }
+
+    if (structEnd > bytes.length) {
+      blocks.push(makeBlock(bytes.slice(cursor + 1), 'value'))
+      break
+    }
+
+    const type = bytes[cursor + 1]
+    blocks.push(makeBlock(bytes.slice(cursor + 1, cursor + 2), 'value'))
+    const value = bytes.slice(cursor + 2, structEnd)
+
+    if (type === 0x16 && value.length >= 2 && value[0] === 0xDF && value[1] === 0xFD) {
+      blocks.push(makeBlock(value.slice(0, 2), 'value'))
+      blocks.push(...formatBLEPayloadBlocks(value.slice(2)))
+    } else {
+      blocks.push(makeBlock(value, 'value'))
+    }
+
+    cursor = structEnd
+  }
+
+  return blocks
+}
+
+function formatBLEPayloadBlocks(bytes) {
+  if (bytes.length < 4) return [makeBlock(bytes, 'value')]
+
+  const blocks = [makeBlock(bytes.slice(0, 2), 'pid'), makeBlock(bytes.slice(2, 4), 'mask')]
+  const mask = readU16(bytes, 2)
+  const dataLen = bytes.length - 4
+
+  if (isMaskPlausible(mask, dataLen)) {
+    let cursor = 4
+    for (const def of MASK_BIT_DEFS) {
+      if (!((mask >> def.bit) & 1) || def.size === 0) continue
+      const end = cursor + def.size
+      const kind = maskFieldKind(def.name)
+      if (end <= bytes.length) {
+        blocks.push(makeBlock(bytes.slice(cursor, end), kind))
+        cursor = end
+      } else {
+        blocks.push(makeBlock(bytes.slice(cursor), 'value'))
+        return blocks
+      }
+    }
+    if (cursor < bytes.length) blocks.push(makeBlock(bytes.slice(cursor), 'value'))
+    return blocks
+  }
+
+  let cursor = 2
+  while (cursor + 2 <= bytes.length) {
+    const len = bytes[cursor]
+    blocks.push(makeBlock(bytes.slice(cursor, cursor + 1), 'length'))
+    if (len === 0) {
+      if (cursor + 1 < bytes.length) blocks.push(makeBlock(bytes.slice(cursor + 1), 'value'))
+      return blocks
+    }
+    const typeStart = cursor + 1
+    const valueStart = cursor + 2
+    const end = cursor + 1 + len
+    if (end > bytes.length) {
+      blocks.push(makeBlock(bytes.slice(typeStart), 'value'))
+      return blocks
+    }
+    blocks.push(makeBlock(bytes.slice(typeStart, valueStart), 'feature-id'))
+    blocks.push(makeBlock(bytes.slice(valueStart, end), 'value'))
+    cursor = end
+  }
+
+  if (cursor < bytes.length) blocks.push(makeBlock(bytes.slice(cursor), 'value'))
+  return blocks
+}
+
+function maskFieldKind(name) {
+  if (name === 'srcName1CRC16' || name === 'srcName2CRC16' || name === 'btMacCRC16') return 'feature-id'
+  if (name === 'colorId') return 'feature-id'
+  if (name === 'batteryInfo') return 'length'
+  return 'value'
+}
+
+export function parseHexWithReport(hexStr) {
+  const issues = []
+  let bytes = []
+
+  try {
+    bytes = hexToBytes(hexStr.trim())
+  } catch (e) {
+    return {
+      parsed: null,
+      summary: {
+        status: 'failed',
+        totalBytes: 0,
+        parsedBytes: 0,
+        unparsedBytes: 0,
+        issueCount: 1,
+        message: 'HEX format is invalid',
+      },
+      issues: [{ severity: 'error', code: 'invalid-hex', message: e.message, offset: 0 }],
+    }
+  }
+
+  if (bytes.length === 0) {
+    return {
+      parsed: null,
+      summary: {
+        status: 'failed',
+        totalBytes: 0,
+        parsedBytes: 0,
+        unparsedBytes: 0,
+        issueCount: 1,
+        message: 'Input is empty',
+      },
+      issues: [{ severity: 'error', code: 'empty-input', message: 'HEX input is empty', offset: 0 }],
+    }
+  }
+
+  let parsed = null
+  try {
+    parsed = parseHex(hexStr)
+  } catch (e) {
+    issues.push({ severity: 'error', code: 'parse-error', message: e.message, offset: 0 })
+  }
+
+  const classifier = classifyHexBytes(bytes)
+  let parsedBytes = bytes.length
+
+  if (classifier === 'command') {
+    parsedBytes = analyzeCommandPacketBytes(bytes, issues)
+  } else if (classifier === 'adv') {
+    parsedBytes = analyzeAdvBytes(bytes, issues)
+  } else if (classifier === 'ble-payload') {
+    parsedBytes = analyzeBLEPayloadBytes(bytes, 0, issues)
+  }
+
+  const totalBytes = bytes.length
+  const unparsedBytes = Math.max(0, totalBytes - parsedBytes)
+  const hasError = issues.some(i => i.severity === 'error')
+  const status = hasError ? (parsedBytes > 0 ? 'partial' : 'failed') : (unparsedBytes > 0 ? 'partial' : 'ok')
+
+  return {
+    parsed,
+    summary: {
+      status,
+      totalBytes,
+      parsedBytes,
+      unparsedBytes,
+      issueCount: issues.length,
+      message: `Parsed ${parsedBytes}/${totalBytes} bytes, ${issues.length} issue(s) found`,
+    },
+    issues,
+  }
+}
+
+function classifyHexBytes(bytes) {
+  if (bytes.length >= 8 && bytes[0] === 0xDD && (bytes[1] === 0x00 || bytes[1] === 0x01)) return 'command'
+  if (bytes.length >= 8) {
+    const id = readU16(bytes, 0)
+    if (id === 0xDD00 || id === 0xDD01) return 'command'
+  }
+  if (bytes.length >= 5 && bytes[1] === 0x16 && bytes[2] === 0xDF && bytes[3] === 0xFD) return 'adv'
+  if (bytes.length >= 4) return 'ble-payload'
+  return 'unknown'
+}
+
+function analyzeCommandPacketBytes(bytes, issues) {
+  if (bytes.length < 8) {
+    issues.push({ severity: 'error', code: 'command-header-too-short', message: 'Command header is shorter than 8 bytes', offset: 0 })
+    return bytes.length
+  }
+
+  const commandId = readU16(bytes, 2)
+  const payloadLength = readU16(bytes, 6)
+  const expectedTotal = 8 + payloadLength
+  const parsedBytes = Math.min(expectedTotal, bytes.length)
+
+  if (expectedTotal > bytes.length) {
+    issues.push({
+      severity: 'error',
+      code: 'payload-length-mismatch',
+      message: `Payload length declares ${payloadLength} bytes but only ${Math.max(0, bytes.length - 8)} bytes are available`,
+      offset: 6,
+    })
+  }
+
+  if (expectedTotal < bytes.length) {
+    issues.push({
+      severity: 'warning',
+      code: 'trailing-bytes',
+      message: `${bytes.length - expectedTotal} trailing byte(s) after command packet`,
+      offset: expectedTotal,
+    })
+  }
+
+  const payload = bytes.slice(8, parsedBytes)
+  analyzeCommandPayloadBytes(commandId, payload, 8, issues)
+  return parsedBytes
+}
+
+function analyzeCommandPayloadBytes(commandId, payload, payloadOffset, issues) {
+  switch (commandId) {
+    case 0x0001: {
+      const looksLikeResponse = payload.length % 2 !== 0 || (payload.length >= 2 && readU16(payload, 0) === 0x0000)
+      if (looksLikeResponse) {
+        analyzeFeatureListBytes(payload, true, payloadOffset, issues)
+      } else {
+        analyzeGetRequestBytes(payload, payloadOffset, issues)
+      }
+      return
+    }
+    case 0x0002:
+      if (payload.length !== 2) analyzeFeatureListBytes(payload, false, payloadOffset, issues)
+      return
+    case 0x0003:
+    case 0x0004:
+      analyzeFeatureListBytes(payload, true, payloadOffset, issues)
+      return
+    default:
+      return
+  }
+}
+
+function analyzeGetRequestBytes(payload, payloadOffset, issues) {
+  if (payload.length % 2 !== 0) {
+    issues.push({
+      severity: 'error',
+      code: 'get-request-length-invalid',
+      message: 'GET request payload length must be even (feature IDs are 2 bytes)',
+      offset: payloadOffset + payload.length - 1,
+    })
+  }
+
+  for (let i = 0; i + 1 < payload.length; i += 2) {
+    const fid = readU16(payload, i)
+    if (!FEATURE_ID_MAP[fid]) {
+      issues.push({
+        severity: 'warning',
+        code: 'unknown-feature-id',
+        message: `Unknown feature ID ${h(fid)} in GET request`,
+        offset: payloadOffset + i,
+      })
+    }
+  }
+}
+
+function analyzeFeatureListBytes(payload, hasStatus, payloadOffset, issues) {
+  let cursor = 0
+
+  if (hasStatus) {
+    if (payload.length < 2) {
+      issues.push({
+        severity: 'error',
+        code: 'missing-status-code',
+        message: 'Payload should include a 2-byte status code',
+        offset: payloadOffset,
+      })
+      return 0
+    }
+    cursor = 2
+  }
+
+  while (cursor + 4 <= payload.length) {
+    const featureId = readU16(payload, cursor)
+    const valueSize = readU16(payload, cursor + 2)
+    const featureOffset = payloadOffset + cursor
+    const info = FEATURE_ID_MAP[featureId]
+    cursor += 4
+
+    if (!info) {
+      issues.push({
+        severity: 'warning',
+        code: 'unknown-feature-id',
+        message: `Unknown feature ID ${h(featureId)}`,
+        offset: featureOffset,
+      })
+    } else if (info.valueSize != null && info.valueSize !== valueSize) {
+      issues.push({
+        severity: 'warning',
+        code: 'feature-length-mismatch',
+        message: `${h(featureId)} (${info.name}) expects ${info.valueSize} byte(s), got ${valueSize}`,
+        offset: featureOffset + 2,
+      })
+    }
+
+    if (cursor + valueSize > payload.length) {
+      issues.push({
+        severity: 'error',
+        code: 'feature-value-overflow',
+        message: `${h(featureId)} value exceeds remaining payload bytes`,
+        offset: featureOffset + 4,
+      })
+      return cursor
+    }
+
+    cursor += valueSize
+  }
+
+  if (cursor < payload.length) {
+    issues.push({
+      severity: 'warning',
+      code: 'payload-trailing-bytes',
+      message: `${payload.length - cursor} trailing byte(s) in feature payload`,
+      offset: payloadOffset + cursor,
+    })
+  }
+
+  return cursor
+}
+
+function analyzeAdvBytes(bytes, issues) {
+  let cursor = 0
+
+  while (cursor < bytes.length) {
+    const len = bytes[cursor]
+    if (len === 0) {
+      issues.push({
+        severity: 'warning',
+        code: 'adv-zero-length',
+        message: `${bytes.length - cursor} trailing byte(s) after zero-length AD marker`,
+        offset: cursor,
+      })
+      return cursor
+    }
+
+    if (cursor + 1 + len > bytes.length) {
+      issues.push({
+        severity: 'error',
+        code: 'adv-structure-overflow',
+        message: `AD structure at offset ${cursor} exceeds packet boundary`,
+        offset: cursor,
+      })
+      return cursor
+    }
+
+    const type = bytes[cursor + 1]
+    const valueStart = cursor + 2
+    const valueEnd = cursor + 1 + len
+    const value = bytes.slice(valueStart, valueEnd)
+
+    if (type === 0x16 && value.length >= 2 && value[0] === 0xDF && value[1] === 0xFD) {
+      analyzeBLEPayloadBytes(value.slice(2), valueStart + 2, issues)
+    }
+
+    cursor = valueEnd
+  }
+
+  return cursor
+}
+
+function analyzeBLEPayloadBytes(bytes, baseOffset, issues) {
+  if (bytes.length < 4) {
+    issues.push({
+      severity: 'error',
+      code: 'service-data-too-short',
+      message: 'BLE service data must be at least 4 bytes (PID + mask/type)',
+      offset: baseOffset,
+    })
+    return bytes.length
+  }
+
+  const mask = readU16(bytes, 2)
+  const dataLen = bytes.length - 4
+
+  if (isMaskPlausible(mask, dataLen)) {
+    const expectedDataLen = expectedMaskDataLen(mask)
+    const expectedTotal = 4 + expectedDataLen
+    if (expectedTotal < bytes.length) {
+      issues.push({
+        severity: 'warning',
+        code: 'service-data-trailing-bytes',
+        message: `${bytes.length - expectedTotal} trailing byte(s) after legacy service data`,
+        offset: baseOffset + expectedTotal,
+      })
+    }
+    return Math.min(expectedTotal, bytes.length)
+  }
+
+  return analyzeExtendedServiceDataBytes(bytes, baseOffset, issues)
+}
+
+function analyzeExtendedServiceDataBytes(bytes, baseOffset, issues) {
+  let cursor = 2
+
+  while (cursor + 2 <= bytes.length) {
+    const len = bytes[cursor]
+    if (len === 0) {
+      issues.push({
+        severity: 'warning',
+        code: 'extended-zero-length',
+        message: `${bytes.length - cursor} trailing byte(s) after zero-length extended field`,
+        offset: baseOffset + cursor,
+      })
+      return cursor
+    }
+
+    if (cursor + 1 + len > bytes.length) {
+      issues.push({
+        severity: 'error',
+        code: 'extended-structure-overflow',
+        message: `Extended field at offset ${baseOffset + cursor} exceeds packet boundary`,
+        offset: baseOffset + cursor,
+      })
+      return cursor
+    }
+
+    const type = bytes[cursor + 1]
+    if (!SERVICE_DATA_TYPE_MAP[type]) {
+      issues.push({
+        severity: 'warning',
+        code: 'unknown-service-data-type',
+        message: `Unknown extended service data type ${h(type, 2)}`,
+        offset: baseOffset + cursor + 1,
+      })
+    }
+
+    cursor += 1 + len
+  }
+
+  if (cursor < bytes.length) {
+    issues.push({
+      severity: 'warning',
+      code: 'extended-trailing-bytes',
+      message: `${bytes.length - cursor} trailing byte(s) in extended service data`,
+      offset: baseOffset + cursor,
+    })
+  }
+
+  return cursor
+}
+
+function expectedMaskDataLen(mask) {
+  let expected = 0
+  for (const def of MASK_BIT_DEFS) {
+    if ((mask >> def.bit) & 1) expected += def.size
+  }
+  return expected
+}
+
 function parseBLEPayload(bytes) {
   if (bytes.length < 4) return null
   const mask = readU16(bytes, 2)
@@ -667,6 +1256,7 @@ function parseBLEPayload(bytes) {
 
 function parseCommandPacket(bytes) {
   const identifier = readU16(bytes, 0)
+  const normalizedIdentifier = identifier === 0x00DD ? 0xDD00 : identifier === 0x01DD ? 0xDD01 : identifier
   const commandId  = readU16(bytes, 2)
   const packetCount  = bytes[4]
   const packetIndex  = bytes[5]
@@ -674,8 +1264,8 @@ function parseCommandPacket(bytes) {
   const cmdInfo = COMMAND_ID_MAP[commandId] || { name: 'Unknown Command', dir: '-', category: 'Unknown' }
 
   const header = {
-    identifier:     h(identifier),
-    identifierDesc: identifier === 0xDD00 ? 'Primary/Standalone Device' : 'Secondary Device (LLS)',
+    identifier:     h(normalizedIdentifier),
+    identifierDesc: normalizedIdentifier === 0xDD00 ? 'Primary/Standalone Device' : 'Secondary Device (LLS)',
     commandId:      h(commandId),
     commandName:    cmdInfo.name,
     direction:      cmdInfo.dir,
@@ -725,9 +1315,16 @@ function parseCommandPacket(bytes) {
 export function jsonToHex(obj) {
   switch (obj.type) {
     case 'Command_Packet':              return bytesToHex(serializeCommandPacket(obj))
-    case 'BLE_Legacy_Service_Data':     return bytesToHex(serializeLegacyServiceData(obj))
+    case 'BLE_Legacy_Service_Data': {
+      // If AD structures exist, rebuild full BLE AdvData bytes (len + type + value blocks).
+      if (Array.isArray(obj.otherADStructures) && obj.otherADStructures.length > 0) {
+        return bytesToHex(serializeAdvDataFromLegacy(obj))
+      }
+      return bytesToHex(serializeLegacyServiceData(obj))
+    }
+    case 'BLE_AdvData':                 return bytesToHex(serializeAdvDataFromLegacy(obj))
     default:
-      throw new Error(`Cannot serialize type "${obj.type}" — only Command_Packet and BLE_Legacy_Service_Data are supported`)
+      throw new Error(`Cannot serialize type "${obj.type}" — only Command_Packet, BLE_Legacy_Service_Data and BLE_AdvData are supported`)
   }
 }
 
@@ -804,14 +1401,89 @@ function serializeLegacyServiceData(obj) {
   return [...writeU16(pid), ...writeU16(mask), ...dataBuf]
 }
 
+function serializeAdvDataFromLegacy(obj) {
+  const out = []
+  const legacy = serializeLegacyServiceData(obj)
+  const serviceDataValue = [0xDF, 0xFD, ...legacy]
+  out.push(1 + serviceDataValue.length, 0x16, ...serviceDataValue)
+
+  for (const ad of obj.otherADStructures || []) {
+    const type = typeof ad.adType === 'string' ? parseInt(ad.adType, 16) : (ad.adType | 0)
+    if (!Number.isFinite(type) || type < 0 || type > 0xFF) continue
+    const value = ad.raw ? hexToBytes(String(ad.raw)) : []
+    out.push(1 + value.length, type, ...value)
+  }
+
+  return out
+}
+
 function encodeMaskField(name, value) {
   // Best-effort re-encoding from parsed JSON
   switch (name) {
+    case 'srcName1CRC16':
+    case 'srcName2CRC16':
+    case 'btMacCRC16': {
+      if (typeof value === 'string') return hexToBytes(value)
+      return []
+    }
     case 'colorId':         return [typeof value === 'object' ? parseInt(value.raw, 16) : (value | 0)]
     case 'batteryInfo': {
       const charging = value.charging ? 0x80 : 0
       const lvl      = value.low ? 0x7F : (value.level & 0x7F)
       return [charging | lvl]
+    }
+    case 'stereoGroupId': {
+      if (typeof value === 'object') return [value.groupId | 0]
+      return [value | 0]
+    }
+    case 'deviceMiscInfo': {
+      if (value?.raw) return writeU16(parseInt(value.raw, 16))
+      const v =
+        ((value.connectable ? 1 : 0) << 15) |
+        ((value.standby ? 1 : 0) << 14) |
+        ((value.muted ? 1 : 0) << 13) |
+        ((value.led ? 1 : 0) << 12) |
+        ((value.mic1 ? 1 : 0) << 11) |
+        ((value.mic2 ? 1 : 0) << 10) |
+        ((value.jblApp ? 1 : 0) << 6) |
+        ((value.dongle ? 1 : 0) << 5) |
+        ((value.soundbar ? 1 : 0) << 4) |
+        ((value.usb ? 1 : 0) << 3) |
+        ((value.aux ? 1 : 0) << 2)
+      return writeU16(v)
+    }
+    case 'partyMethodInfo': {
+      if (value?.raw) return [parseInt(value.raw, 16)]
+      const v =
+        ((value.auracast ? 1 : 0) << 7) |
+        ((value.lls ? 1 : 0) << 6) |
+        ((value.oneCast ? 1 : 0) << 5)
+      return [v]
+    }
+    case 'partyInfo': {
+      if (value?.raw) return writeU16(parseInt(value.raw, 16))
+      const groupBits = value.groupType === 'Party' ? 0x1 : value.groupType === 'Stereo' ? 0x2 : 0x0
+      const v =
+        ((value.partyOn ? 1 : 0) << 15) |
+        ((groupBits & 0x3) << 13) |
+        (value.canJoin ? 1 : 0)
+      return writeU16(v)
+    }
+    case 'partyLightInfo': {
+      if (value?.raw) return writeU16(parseInt(value.raw, 16))
+      const v =
+        ((value.connectedToPartyBox ? 1 : 0) << 15) |
+        (((value.stageNumber | 0) & 0x7F) << 8)
+      return writeU16(v)
+    }
+    case 'deviceMiscInfo2': {
+      if (value?.raw) return writeU16(parseInt(value.raw, 16))
+      const v =
+        ((value.blePairingFlowSupported ? 1 : 0) << 15) |
+        ((value.pairedStatusSupported ? 1 : 0) << 14) |
+        ((value.srcName1BlePaired ? 1 : 0) << 13) |
+        ((value.srcName2BlePaired ? 1 : 0) << 12)
+      return writeU16(v)
     }
     case 'firmwareVersion3B': {
       const parts = String(value).replace('v','').split('.').map(Number)

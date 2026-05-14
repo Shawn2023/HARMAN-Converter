@@ -15,13 +15,9 @@
       <div class="header-actions">
         <button class="btn-tag" @click="toggleEndian" :title="'Current: ' + endian">
           <span class="tag-dot"></span>
-          {{ endian === 'LE' ? 'LE 小端' : 'BE 大端' }}
+          {{ endian === 'LE' ? 'LE Little Endian' : 'BE Big Endian' }}
         </button>
-        <button class="btn-action" @click="formatHex" title="格式化 HEX 输入">
-          <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M2 2h12v2H2zm0 4h8v2H2zm0 4h10v2H2z"/></svg>
-          格式化HEX
-        </button>
-        <button class="btn-action theme-btn" @click="toggleTheme" :title="theme === 'dark' ? '切换浅色' : '切换深色'">
+        <button class="btn-action theme-btn" @click="toggleTheme" :title="theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'">
           <svg v-if="theme === 'dark'" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 12.5A5.5 5.5 0 1 1 8 2.5a5.5 5.5 0 0 1 0 11z"/><circle fill="currentColor" cx="8" cy="8" r="3"/></svg>
           <svg v-else viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M6 1a6 6 0 0 0 0 14 6.5 6.5 0 0 1 0-14z"/></svg>
           {{ theme === 'dark' ? 'Light' : 'Dark' }}
@@ -29,7 +25,7 @@
         <div class="dropdown-wrap">
           <button class="btn-action" @click="showSamples = !showSamples">
             <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M3 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm1 2v8h8V4H4zm1 1h6v1H5zm0 2h4v1H5z"/></svg>
-            示例数据
+            Sample Data
           </button>
           <div v-if="showSamples" class="dropdown-menu" @mouseleave="showSamples = false">
             <div
@@ -45,7 +41,7 @@
         <div class="dropdown-wrap">
           <button class="btn-action" @click="showRef = !showRef">
             <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3.5h1.5V9h-1.5V4.5zm0 5.5h1.5v1.5h-1.5V10z"/></svg>
-            协议参考
+            Protocol Reference
             <svg viewBox="0 0 10 6" width="8" height="8"><path fill="currentColor" d="M0 0l5 6 5-6z"/></svg>
           </button>
           <div v-if="showRef" class="dropdown-menu ref-menu" @mouseleave="showRef = false">
@@ -73,38 +69,58 @@
     </header>
 
     <!-- Main panels -->
-    <main class="workspace">
+    <main class="workspace" :class="{ 'serialize-mode': convertMode === 'serialize' }">
       <!-- HEX Panel -->
-      <div class="panel" :class="{ active: hexFocused }">
+      <div class="panel hex-panel" :class="{ active: hexFocused }">
         <div class="panel-header">
           <div class="panel-label">
             <span class="dot hex-dot"></span>
             <span>HEX</span>
           </div>
           <div class="panel-actions">
-            <button class="icon-btn" @click="toggleHexSpaces" :title="hexSpaced ? '去除空格' : '添加空格'">
+            <button class="panel-btn" @click="formatHex" title="Format HEX by Protocol Blocks">Format</button>
+            <button class="icon-btn" @click="toggleHexSpaces" :title="hexSpaced ? 'Remove Spaces' : 'Add Spaces'">
               <svg viewBox="0 0 16 16" width="14" height="14">
                 <text v-if="hexSpaced"  x="1" y="12" font-size="9" fill="currentColor" font-family="monospace">A B</text>
                 <text v-else            x="1" y="12" font-size="9" fill="currentColor" font-family="monospace">AB</text>
               </svg>
             </button>
-            <button class="icon-btn" @click="pasteHex" title="粘贴">
+            <button class="icon-btn" @click="pasteHex" title="Paste">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M5 1h6v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h1V1zm1 1v2h4V2H6zm-2 2v9h8V4H4z"/></svg>
             </button>
-            <button class="icon-btn" @click="copyHex" :class="{ copied: hexCopied }" title="复制">
+            <button class="icon-btn" @click="copyHex" :class="{ copied: hexCopied }" title="Copy">
               <svg v-if="!hexCopied" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4 2h8v1H5v9H4V2zm2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm0 1v8h8V5H6z"/></svg>
               <svg v-else viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 8l4 4 8-8-1-1-7 7-3-3z"/></svg>
             </button>
-            <button class="icon-btn" @click="clearHex" title="清空">
+            <button class="icon-btn" @click="clearHex" title="Clear">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4 4l8 8-1 1L3 5zm8 0L4 12l-1-1 8-8z"/></svg>
             </button>
           </div>
         </div>
         <div class="panel-body">
+          <div v-if="showFormatLegend" class="hex-format-meta">
+            <div class="format-legend">
+              <span v-for="item in formatLegend" :key="item.kind" class="legend-item">
+                <span class="legend-label">{{ item.label }}:</span>
+                <span class="legend-swatch" :class="`k-${item.kind}`"></span>
+              </span>
+            </div>
+            <div class="format-blocks">
+              <span
+                v-for="(blk, idx) in formatBlocks"
+                :key="`${blk.kind}-${idx}-${blk.text}`"
+                class="format-block"
+                :class="`k-${blk.kind}`"
+              >
+                {{ blk.text }}
+              </span>
+            </div>
+          </div>
           <textarea
+            v-if="!showFormatLegend"
             v-model="hexInput"
             class="editor hex-editor"
-            :placeholder="'输入十六进制字节流，例如：DD 00 01 00 01 00 04 00 04 00 06 00'"
+            :placeholder="'Enter hex byte stream, e.g.: DD 00 01 00 01 00 04 00 04 00 06 00'"
             spellcheck="false"
             @focus="hexFocused = true"
             @blur="hexFocused = false"
@@ -113,33 +129,63 @@
             <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3.5h1.5V9h-1.5V4.5zm0 5.5h1.5v1.5h-1.5V10z"/></svg>
             {{ hexError }}
           </div>
+          <div v-if="parseSummary" class="parse-summary" :class="`is-${parseSummary.status}`">
+            <div class="parse-summary-line">
+              <strong>Parse Summary:</strong>
+              <span>{{ parseSummary.message }}</span>
+            </div>
+            <div class="parse-summary-line">
+              <span>Total: {{ parseSummary.totalBytes }} bytes</span>
+              <span>Parsed: {{ parseSummary.parsedBytes }} bytes</span>
+              <span>Unparsed: {{ parseSummary.unparsedBytes }} bytes</span>
+            </div>
+            <ul v-if="parseIssues.length" class="parse-issues">
+              <li v-for="(issue, idx) in parseIssues" :key="`${issue.code}-${idx}`">
+                [{{ issue.severity.toUpperCase() }}] offset {{ issue.offset }}: {{ issue.message }}
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
       <!-- Middle divider -->
       <div class="divider">
-        <div class="divider-dot"></div>
+        <button
+          class="swap-btn"
+          :class="[
+            convertMode === 'serialize' ? 'is-serialize' : 'is-deserialize',
+            { 'is-animating': swapAnimating }
+          ]"
+          type="button"
+          @click="toggleMode"
+          :title="convertMode === 'deserialize' ? 'Switch to Serialize (JSON → HEX)' : 'Switch to Deserialize (HEX → JSON)'"
+          :aria-label="convertMode === 'deserialize' ? 'Switch to Serialize' : 'Switch to Deserialize'"
+        >
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
+            <path fill="currentColor" d="M2 6h12l-2.5-2.5 1.1-1.1L17 6.7l-4.4 4.3-1.1-1.1L14 7.4H2V6zm16 8H6l2.5 2.5-1.1 1.1L3 13.3 7.4 9l1.1 1.1L6 12.6h12V14z"/>
+          </svg>
+        </button>
       </div>
 
       <!-- JSON Panel -->
-      <div class="panel" :class="{ active: jsonFocused }">
+      <div class="panel json-panel" :class="{ active: jsonFocused }">
         <div class="panel-header">
           <div class="panel-label">
             <span class="dot json-dot"></span>
             <span>JSON</span>
           </div>
           <div class="panel-actions">
-            <button class="icon-btn" @click="compressJson" title="压缩">
+            <button class="icon-btn" @click="compressJson" title="Minify">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 4h12v1H2zm2 3h8v1H4zm1 3h6v1H5z"/></svg>
             </button>
-            <button class="icon-btn" @click="expandJson" title="格式化">
+            <button class="icon-btn" @click="expandJson" title="Pretty Print">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 2h12v2H2zm2 4h8v2H4zm-2 4h12v2H2z"/></svg>
             </button>
-            <button class="icon-btn" @click="copyJson" :class="{ copied: jsonCopied }" title="复制">
+            <button class="icon-btn" @click="copyJson" :class="{ copied: jsonCopied }" title="Copy">
               <svg v-if="!jsonCopied" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4 2h8v1H5v9H4V2zm2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm0 1v8h8V5H6z"/></svg>
               <svg v-else viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 8l4 4 8-8-1-1-7 7-3-3z"/></svg>
             </button>
-            <button class="icon-btn" @click="clearJson" title="清空">
+            <button class="icon-btn" @click="clearJson" title="Clear">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4 4l8 8-1 1L3 5zm8 0L4 12l-1-1 8-8z"/></svg>
             </button>
           </div>
@@ -175,8 +221,8 @@
             <span v-if="deviceCard.modelName" class="device-model">{{ deviceCard.modelName }}</span>
             <span class="device-pid">PID: {{ deviceCard.pid }}</span>
             <span class="device-color">Color ID: {{ deviceCard.colorId }}</span>
-            <span v-if="deviceCard.loading" class="device-status">正在查询产品信息…</span>
-            <span v-else-if="deviceCard.unresolved" class="device-status warn">未在产品列表中找到此 PID</span>
+            <span v-if="deviceCard.loading" class="device-status">Loading product info...</span>
+            <span v-else-if="deviceCard.unresolved" class="device-status warn">PID not found in product list</span>
             <a v-if="deviceCard.configUrl" :href="deviceCard.configUrl" target="_blank" rel="noopener" class="device-cfg-link">
               📄 model_config.json ↗
             </a>
@@ -192,7 +238,9 @@
         <svg viewBox="0 0 12 12" width="10" height="10"><path fill="currentColor" d="M1 6l3 3 7-7-1-1-6 6-2-2z"/></svg>
         {{ lastConversion }}
       </span>
-      <span class="status-hint">输入 HEX 自动解析为 JSON，输入 JSON 自动生成 HEX</span>
+      <span class="status-hint">
+        {{ convertMode === 'deserialize' ? 'Current mode: type HEX to auto-parse JSON' : 'Current mode: type JSON to auto-generate HEX' }}
+      </span>
       <a class="status-link" href="https://github.com/harman-connected" target="_blank" rel="noopener">HARMAN Connected</a>
     </footer>
   </div>
@@ -200,7 +248,7 @@
 
 <script setup>
 import { ref, watch, computed } from 'vue'
-import { parseHex, jsonToHex } from './utils/protocol.js'
+import { parseHexWithReport, jsonToHex, formatHexByBlocksDetailed } from './utils/protocol.js'
 import { SAMPLE_DATA, COMMAND_ID_MAP } from './utils/constants.js'
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -218,7 +266,15 @@ const jsonCopied  = ref(false)
 const showSamples = ref(false)
 const showRef     = ref(false)
 const lastConversion = ref('')
+const convertMode = ref('deserialize') // deserialize: HEX -> JSON, serialize: JSON -> HEX
+const swapAnimating = ref(false)
+const parseSummary = ref(null)
+const parseIssues  = ref([])
+const showFormatLegend = ref(false)
+const formatLegend = ref([])
+const formatBlocks = ref([])
 let   lastSource  = '' // 'hex' | 'json'
+let   applyingFormat = false
 
 // ── Device card (BLE advertisement) ──────────────────────────────────────────
 const deviceCard = ref(null)
@@ -287,13 +343,27 @@ let hexTimer = null
 let jsonTimer = null
 
 watch(hexInput, (val) => {
+  if (convertMode.value !== 'deserialize') return
   if (lastSource === 'json') return
+
+  if (!applyingFormat) {
+    showFormatLegend.value = false
+    formatLegend.value = []
+    formatBlocks.value = []
+  }
+
   clearTimeout(hexTimer)
-  if (!val.trim()) { hexError.value = ''; return }
+  if (!val.trim()) {
+    hexError.value = ''
+    parseSummary.value = null
+    parseIssues.value = []
+    return
+  }
   hexTimer = setTimeout(() => convertHexToJson(val), 200)
 })
 
 watch(jsonInput, (val) => {
+  if (convertMode.value !== 'serialize') return
   if (lastSource === 'hex') return
   clearTimeout(jsonTimer)
   if (!val.trim()) { jsonError.value = ''; return }
@@ -303,10 +373,18 @@ watch(jsonInput, (val) => {
 function convertHexToJson(val) {
   lastSource = 'hex'
   try {
-    const result = parseHex(val)
+    const report = parseHexWithReport(val)
+    parseSummary.value = report.summary
+    parseIssues.value = report.issues
+    const result = report.parsed
+
     if (!result) { hexError.value = 'Input is empty or invalid'; return }
+
+    hexError.value = report.summary?.status === 'failed'
+      ? (report.issues[0]?.message || 'HEX parsing failed')
+      : ''
+
     jsonInput.value = JSON.stringify(result, null, 2)
-    hexError.value = ''
     lastConversion.value = `HEX → JSON  (${val.replace(/\s/g,'').length / 2} bytes)`
     // Try to show device card for BLE advertisement
     deviceCard.value = null
@@ -388,10 +466,47 @@ function toggleEndian() {
   endian.value = endian.value === 'LE' ? 'BE' : 'LE'
 }
 
+function toggleMode() {
+  swapAnimating.value = true
+  convertMode.value = convertMode.value === 'deserialize' ? 'serialize' : 'deserialize'
+  hexError.value = ''
+  jsonError.value = ''
+  setTimeout(() => { swapAnimating.value = false }, 260)
+
+  if (convertMode.value === 'deserialize' && hexInput.value.trim()) {
+    convertHexToJson(hexInput.value)
+    return
+  }
+
+  if (convertMode.value === 'serialize' && jsonInput.value.trim()) {
+    convertJsonToHex(jsonInput.value)
+  }
+}
+
 function formatHex() {
-  const clean = hexInput.value.replace(/\s/g, '')
-  if (!clean) return
-  hexInput.value = clean.match(/.{1,2}/g).join(' ').toUpperCase()
+  if (showFormatLegend.value) {
+    showFormatLegend.value = false
+    formatLegend.value = []
+    formatBlocks.value = []
+    return
+  }
+
+  if (!hexInput.value.trim()) return
+  try {
+    const formatted = formatHexByBlocksDetailed(hexInput.value)
+    const visibleBlocks = formatted.blocks.filter(b => b.text)
+    const usedKinds = new Set(visibleBlocks.map(b => b.kind))
+    applyingFormat = true
+    hexInput.value = formatted.formatted
+    formatLegend.value = formatted.legend.filter(item => usedKinds.has(item.kind))
+    formatBlocks.value = visibleBlocks
+    showFormatLegend.value = true
+    setTimeout(() => { applyingFormat = false }, 0)
+    hexError.value = ''
+  } catch (e) {
+    applyingFormat = false
+    hexError.value = e.message
+  }
 }
 
 function swapPanels() {
@@ -402,7 +517,17 @@ function swapPanels() {
   jsonError.value = ''
 }
 
-function clearHex() { hexInput.value = ''; hexError.value = ''; lastConversion.value = ''; deviceCard.value = null }
+function clearHex() {
+  hexInput.value = ''
+  hexError.value = ''
+  lastConversion.value = ''
+  deviceCard.value = null
+  parseSummary.value = null
+  parseIssues.value = []
+  showFormatLegend.value = false
+  formatLegend.value = []
+  formatBlocks.value = []
+}
 
 function toggleHexSpaces() {
   const v = hexInput.value

@@ -204,7 +204,7 @@ import { parseHex, jsonToHex } from './utils/protocol.js'
 import { SAMPLE_DATA, COMMAND_ID_MAP } from './utils/constants.js'
 
 // ── State ────────────────────────────────────────────────────────────────────
-const theme       = ref(localStorage.getItem('hpc-theme') || 'dark')
+const theme       = ref(localStorage.getItem('hpc-theme') || 'light')
 const endian      = ref('LE')
 const hexInput    = ref('')
 const jsonInput   = ref('')

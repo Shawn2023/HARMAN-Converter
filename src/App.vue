@@ -122,7 +122,14 @@
             <span>HEX</span>
           </div>
           <div class="panel-actions">
-            <button class="panel-btn" @click="formatHex" :title="t('formatTitle')">{{ t('format') }}</button>
+            <button
+              class="panel-btn"
+              :class="{ active: showFormatLegend }"
+              @click="formatHex"
+              :title="t('formatTitle')"
+            >
+              {{ t('format') }}
+            </button>
             <button class="icon-btn" @click="toggleHexSpaces" :title="hexSpaced ? t('removeSpaces') : t('addSpaces')">
               <svg viewBox="0 0 16 16" width="14" height="14">
                 <text v-if="hexSpaced"  x="1" y="12" font-size="9" fill="currentColor" font-family="monospace">A B</text>

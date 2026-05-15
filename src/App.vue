@@ -460,8 +460,25 @@ const hoveredFeatureId = computed(() => {
   if (blk.kind === 'feature-id') {
     // bytes are LE, e.g. "43 2D" -> 0x2D43
     const bytes = blk.text.split(' ')
+    if (bytes.length < 2) return null
     const id = parseInt(bytes[1] + bytes[0], 16)
     return isNaN(id) ? null : '0x' + id.toString(16).toUpperCase().padStart(4, '0')
+  }
+
+  // Also support length block to highlight its containing feature object
+  if (blk.kind === 'length') {
+    // Look backward to find the preceding feature-id block
+    for (let i = hoveredBlockIdx.value - 1; i >= 0; i--) {
+      const prev = formatBlocks.value[i]
+      if (prev.kind === 'feature-id') {
+        const bytes = prev.text.split(' ')
+        if (bytes.length < 2) break
+        const id = parseInt(bytes[1] + bytes[0], 16)
+        return isNaN(id) ? null : '0x' + id.toString(16).toUpperCase().padStart(4, '0')
+      }
+      // Stop if we hit header parts
+      if (['identifier', 'command-id', 'mask', 'pid'].includes(prev.kind)) break
+    }
   }
   return null
 })

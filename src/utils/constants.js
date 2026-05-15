@@ -193,6 +193,7 @@ export const FEATURE_ID_MAP = {
   0x2013: { name: 'Hotel Mode Status',                                     perm: 'R/W',   valueSize: 1 },
   0x2014: { name: 'Top Panel Lock',                                        perm: 'R/W',   valueSize: 1 },
   0x2015: { name: 'USB-C Port Working Mode',                               perm: 'R/W',   valueSize: 1 },
+  0x204D: { name: 'Wireless Pairing Management',                           perm: 'R/W',   valueSize: 1 },
   // ── Battery Group [0x2E00, 0x2EFF] ─────────────────────────────────────────
   0x2E00: { name: 'Battery ID',                                            perm: 'R',     maxSize: 16 },
   0x2E01: { name: 'Battery Remaining Playtime',                            perm: 'R',     valueSize: 2 },

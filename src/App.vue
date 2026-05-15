@@ -102,21 +102,40 @@
         </div>
         <div class="panel-body">
           <div v-if="showFormatLegend" class="hex-format-meta">
-            <div class="format-legend">
-              <span v-for="item in formatLegend" :key="item.kind" class="legend-item">
-                <span class="legend-label">{{ item.label }}:</span>
-                <span class="legend-swatch" :class="`k-${item.kind}`"></span>
-              </span>
-            </div>
             <div class="format-blocks">
-              <span
+              <div
                 v-for="(blk, idx) in formatBlocks"
                 :key="`${blk.kind}-${idx}-${blk.text}`"
                 class="format-block"
                 :class="`k-${blk.kind}`"
               >
-                {{ blk.text }}
-              </span>
+                <span class="blk-hex">{{ blk.text }}</span>
+                <span class="blk-label">{{ blk.label || (blk.kind !== 'value' ? blk.kind : '\u00a0') }}</span>
+              </div>
+            </div>
+            <div v-if="maskDetail" class="mask-detail">
+              <div class="mask-detail-header">
+                mask: <code>{{ formatBlocks.find(b=>b.kind==='mask')?.text }}</code>
+                &rarr; LE u16: <code>{{ maskDetailHex }}</code>
+              </div>
+              <table class="mask-table">
+                <thead>
+                  <tr>
+                    <th>Bit</th>
+                    <th>Binary</th>
+                    <th>Value</th>
+                    <th>Field</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in maskDetail" :key="row.bit" :class="{ 'mask-row-active': row.value === 1 }">
+                    <td class="mask-bit">bit {{ row.bit }}</td>
+                    <td class="mask-bin"><code>{{ row.bin }}</code></td>
+                    <td class="mask-val">{{ row.value }}</td>
+                    <td class="mask-name">{{ row.name }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
           <textarea
@@ -252,7 +271,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { parseHexWithReport, jsonToHex, formatHexByBlocksDetailed } from './utils/protocol.js'
-import { SAMPLE_DATA, COMMAND_ID_MAP } from './utils/constants.js'
+import { SAMPLE_DATA, COMMAND_ID_MAP, MASK_BIT_DEFS } from './utils/constants.js'
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 const locale = ref(localStorage.getItem('hpc-locale') || 'en')
@@ -369,6 +388,34 @@ const formatLegend = ref([])
 const formatBlocks = ref([])
 let   lastSource  = '' // 'hex' | 'json'
 let   applyingFormat = false
+
+// ── Mask detail ──────────────────────────────────────────────────────────────
+const maskDetail = computed(() => {
+  const maskBlock = formatBlocks.value.find(b => b.kind === 'mask')
+  if (!maskBlock) return null
+  // mask bytes are in LE order: swap to get the actual u16 value
+  const hex = maskBlock.text.padStart(4, '0')
+  const maskVal = parseInt(hex.slice(2, 4) + hex.slice(0, 2), 16)
+  if (isNaN(maskVal)) return null
+  const binStr = maskVal.toString(2).padStart(16, '0')
+  return MASK_BIT_DEFS
+    .filter(d => d.size > 0)
+    .sort((a, b) => b.bit - a.bit)
+    .map(def => ({
+      bit: def.bit,
+      bin: binStr[15 - def.bit],
+      value: (maskVal >> def.bit) & 1,
+      name: def.name,
+    }))
+})
+
+const maskDetailHex = computed(() => {
+  const maskBlock = formatBlocks.value.find(b => b.kind === 'mask')
+  if (!maskBlock) return ''
+  const hex = maskBlock.text.padStart(4, '0')
+  const val = parseInt(hex.slice(2, 4) + hex.slice(0, 2), 16)
+  return '0x' + val.toString(16).toUpperCase().padStart(4, '0')
+})
 
 // ── Device card (BLE advertisement) ──────────────────────────────────────────
 const deviceCard = ref(null)

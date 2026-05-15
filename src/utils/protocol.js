@@ -688,9 +688,10 @@ export function formatHexByBlocksDetailed(hexStr) {
   }
 }
 
-function makeBlock(arr, kind = 'value') {
+function makeBlock(arr, kind = 'value', label = '') {
   return {
     kind,
+    label,
     text: arr.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(''),
   }
 }
@@ -838,9 +839,8 @@ function formatBLEPayloadBlocks(bytes) {
     for (const def of MASK_BIT_DEFS) {
       if (!((mask >> def.bit) & 1) || def.size === 0) continue
       const end = cursor + def.size
-      const kind = maskFieldKind(def.name)
       if (end <= bytes.length) {
-        blocks.push(makeBlock(bytes.slice(cursor, end), kind))
+        blocks.push(makeBlock(bytes.slice(cursor, end), 'field', def.name))
         cursor = end
       } else {
         blocks.push(makeBlock(bytes.slice(cursor), 'value'))
@@ -851,8 +851,9 @@ function formatBLEPayloadBlocks(bytes) {
     return blocks
   }
 
-  let cursor = 2
-  while (cursor + 2 <= bytes.length) {
+  let cursor = 4
+  while (cursor < bytes.length) {
+    if (cursor + 1 > bytes.length) break
     const len = bytes[cursor]
     blocks.push(makeBlock(bytes.slice(cursor, cursor + 1), 'length'))
     if (len === 0) {
@@ -866,20 +867,15 @@ function formatBLEPayloadBlocks(bytes) {
       blocks.push(makeBlock(bytes.slice(typeStart), 'value'))
       return blocks
     }
-    blocks.push(makeBlock(bytes.slice(typeStart, valueStart), 'feature-id'))
-    blocks.push(makeBlock(bytes.slice(valueStart, end), 'value'))
+    const typeVal = bytes[typeStart]
+    const fieldName = SERVICE_DATA_TYPE_MAP[typeVal]?.name ?? `type:0x${typeVal.toString(16).padStart(2, '0')}`
+    blocks.push(makeBlock(bytes.slice(typeStart, valueStart), 'type', fieldName))
+    blocks.push(makeBlock(bytes.slice(valueStart, end), 'field', fieldName))
     cursor = end
   }
 
   if (cursor < bytes.length) blocks.push(makeBlock(bytes.slice(cursor), 'value'))
   return blocks
-}
-
-function maskFieldKind(name) {
-  if (name === 'srcName1CRC16' || name === 'srcName2CRC16' || name === 'btMacCRC16') return 'feature-id'
-  if (name === 'colorId') return 'feature-id'
-  if (name === 'batteryInfo') return 'length'
-  return 'value'
 }
 
 export function parseHexWithReport(hexStr) {

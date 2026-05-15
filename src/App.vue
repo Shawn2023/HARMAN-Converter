@@ -264,9 +264,9 @@
         </div>
         <div class="panel-body">
           <textarea
+            ref="jsonTextArea"
             v-model="jsonInput"
             class="editor json-editor"
-            :class="{ 'has-highlight': hoveredBlockIndex !== -1 }"
             :placeholder="t('jsonPlaceholder')"
             spellcheck="false"
             @focus="jsonFocused = true"
@@ -425,6 +425,7 @@ function toggleLocale() {
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
+const jsonTextArea = ref(null)
 const theme       = ref(localStorage.getItem('hpc-theme') || 'light')
 const endian      = ref('LE')
 const hexInput    = ref('')
@@ -507,21 +508,49 @@ const hoveredBlockJson = computed(() => {
 
   try {
     const fullJson = JSON.parse(jsonInput.value)
-    
+    let result = null
+    let searchKey = ""
+
     // Header blocks
-    if (block.kind === 'identifier') return JSON.stringify({ identifier: fullJson.header?.identifier }, null, 2)
-    if (block.kind === 'command-id') return JSON.stringify({ commandId: fullJson.header?.commandId, commandName: fullJson.header?.commandName }, null, 2)
-    if (block.kind === 'length') return JSON.stringify({ length: block.text }, null, 2)
-    
-    // Payload level blocks
-    if (block.kind === 'feature-id') {
+    if (block.kind === 'identifier') {
+      result = { identifier: fullJson.header?.identifier }
+      searchKey = `"identifier":`
+    } else if (block.kind === 'command-id') {
+      result = { commandId: fullJson.header?.commandId, commandName: fullJson.header?.commandName }
+      searchKey = `"commandId":`
+    } else if (block.kind === 'length') {
+      result = { length: block.text }
+      searchKey = `"length":`
+    } else if (block.kind === 'feature-id') {
       const fid = parseInt(block.text, 16)
       const entry = fullJson.payload?.find(item => item.featureId === fid)
-      if (entry) return JSON.stringify(entry, null, 2)
+      if (entry) {
+        result = entry
+        searchKey = `"featureId": ${fid}`
+      }
+    } else if (block.kind === 'mask') {
+      result = { mask: fullJson.payload?.[0]?.mask }
+      searchKey = `"mask":`
     }
-    
-    if (block.kind === 'mask') return JSON.stringify({ mask: fullJson.payload?.[0]?.mask }, null, 2)
-    
+
+    if (result) {
+      // Auto-scroll logic
+      if (jsonTextArea.value && searchKey) {
+        const text = jsonInput.value
+        const pos = text.indexOf(searchKey)
+        if (pos !== -1) {
+          const lines = text.substring(0, pos).split('\n').length
+          const textarea = jsonTextArea.value
+          const lineHeight = 18 // Estimate or get from CSS
+          const targetScroll = (lines - 1) * lineHeight
+          textarea.scrollTo({
+            top: Math.max(0, targetScroll - textarea.clientHeight / 3),
+            behavior: 'smooth'
+          })
+        }
+      }
+      return JSON.stringify(result, null, 2)
+    }
     return null
   } catch {
     return null

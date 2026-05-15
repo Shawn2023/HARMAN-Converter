@@ -661,6 +661,8 @@ function swapPanels() {
 function clearHex() {
   hexInput.value = ''
   hexError.value = ''
+  jsonInput.value = ''
+  jsonError.value = ''
   lastConversion.value = ''
   deviceCard.value = null
   parseSummary.value = null

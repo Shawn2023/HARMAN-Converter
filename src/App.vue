@@ -156,6 +156,7 @@
                 :key="`${blk.kind}-${idx}-${blk.text}`"
                 class="format-block"
                 :class="[`k-${blk.kind}`, { 'is-hovered': idx === hoveredBlockIdx }]"
+                @click="scrollToFeature(idx)"
                 @mouseenter="hoveredBlockIdx = idx"
                 @mouseleave="hoveredBlockIdx = -1"
               >
@@ -449,26 +450,20 @@ let   lastSource  = '' // 'hex' | 'json'
 let   applyingFormat = false
 
 // ── Linkage logic ────────────────────────────────────────────────────────────
-// Find the corresponding featureId in the JSON output from a format block index
-const hoveredFeatureId = computed(() => {
-  if (hoveredBlockIdx.value === -1 || !showFormatLegend.value) return null
-  const blk = formatBlocks.value[hoveredBlockIdx.value]
+const getFeatureIdFromBlock = (blockIdx) => {
+  if (blockIdx === -1) return null
+  const blk = formatBlocks.value[blockIdx]
   if (!blk) return null
 
-  // We look for feature-id or mask kind and find the hex value
-  // But more reliably, we know feature-id blocks contain the hex: "43 2D" etc.
   if (blk.kind === 'feature-id') {
-    // bytes are LE, e.g. "43 2D" -> 0x2D43
     const bytes = blk.text.split(' ')
     if (bytes.length < 2) return null
     const id = parseInt(bytes[1] + bytes[0], 16)
     return isNaN(id) ? null : '0x' + id.toString(16).toUpperCase().padStart(4, '0')
   }
 
-  // Also support length block to highlight its containing feature object
   if (blk.kind === 'length') {
-    // Look backward to find the preceding feature-id block
-    for (let i = hoveredBlockIdx.value - 1; i >= 0; i--) {
+    for (let i = blockIdx - 1; i >= 0; i--) {
       const prev = formatBlocks.value[i]
       if (prev.kind === 'feature-id') {
         const bytes = prev.text.split(' ')
@@ -476,43 +471,40 @@ const hoveredFeatureId = computed(() => {
         const id = parseInt(bytes[1] + bytes[0], 16)
         return isNaN(id) ? null : '0x' + id.toString(16).toUpperCase().padStart(4, '0')
       }
-      // Stop if we hit header parts
       if (['identifier', 'command-id', 'mask', 'pid'].includes(prev.kind)) break
     }
   }
   return null
-})
+}
 
-watch(hoveredFeatureId, (newId) => {
-  if (!newId) return
+const scrollToFeature = (idx) => {
+  const fid = getFeatureIdFromBlock(idx)
+  if (!fid) return
+
   const editor = document.querySelector('.json-editor')
   if (!editor) return
 
   const text = jsonInput.value
-  // Look for "featureId": "0xXXXX"
-  const searchPattern = `"featureId": "${newId}"`
+  const searchPattern = `"featureId": "${fid}"`
   const index = text.indexOf(searchPattern)
   if (index === -1) return
 
-  // Find the start and end of the object
   let start = text.lastIndexOf('{', index)
   if (start === -1) start = index
   let end = text.indexOf('}', index)
   if (end === -1) end = index + searchPattern.length
   else end += 1
 
-  // Use a more robust scrolling method
-  editor.setSelectionRange(start, end)
   editor.focus()
+  editor.setSelectionRange(start, end)
 
+  // Precise scrolling
   const lines = text.substring(0, start).split('\n')
   const lineNum = lines.length
   const totalLines = text.split('\n').length
-  
-  // Calculate relative position (0 to 1)
   const scrollRatio = (lineNum - 1) / totalLines
   editor.scrollTop = scrollRatio * editor.scrollHeight - (editor.clientHeight / 3)
-})
+}
 
 // ── Mask detail ──────────────────────────────────────────────────────────────
 const maskDetail = computed(() => {

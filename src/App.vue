@@ -155,7 +155,9 @@
                 v-for="(blk, idx) in formatBlocks"
                 :key="`${blk.kind}-${idx}-${blk.text}`"
                 class="format-block"
-                :class="`k-${blk.kind}`"
+                :class="[`k-${blk.kind}`, { 'is-hovered': hoveredBlockIndex === idx }]"
+                @mouseenter="hoveredBlockIndex = idx"
+                @mouseleave="hoveredBlockIndex = -1"
               >
                 <span class="blk-hex">{{ blk.text }}</span>
                 <span class="blk-label">{{ blk.label || (blk.kind !== 'value' ? blk.kind : '\u00a0') }}</span>
@@ -264,11 +266,15 @@
           <textarea
             v-model="jsonInput"
             class="editor json-editor"
+            :class="{ 'has-highlight': hoveredBlockIndex !== -1 }"
             :placeholder="t('jsonPlaceholder')"
             spellcheck="false"
             @focus="jsonFocused = true"
             @blur="jsonFocused = false"
           />
+          <div v-if="hoveredBlockIndex !== -1 && hoveredBlockJson" class="json-hover-hint">
+            <pre>{{ hoveredBlockJson }}</pre>
+          </div>
           <div v-if="jsonError" class="error-bar">
             <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3.5h1.5V9h-1.5V4.5zm0 5.5h1.5v1.5h-1.5V10z"/></svg>
             {{ jsonError }}
@@ -434,6 +440,7 @@ const showSamples = ref(false)
 const showRef     = ref(false)
 const showFidDict = ref(false)
 const fidSearchQuery = ref('')
+const hoveredBlockIndex = ref(-1)
 const lastConversion = ref('')
 const convertMode = ref('deserialize') // deserialize: HEX -> JSON, serialize: JSON -> HEX
 const swapAnimating = ref(false)
@@ -491,6 +498,34 @@ const filteredFidRows = computed(() => {
     rows.push([filtered[i], filtered[i + 1]])
   }
   return rows
+})
+
+const hoveredBlockJson = computed(() => {
+  if (hoveredBlockIndex.value === -1) return null
+  const block = formatBlocks.value[hoveredBlockIndex.value]
+  if (!block || !jsonInput.value) return null
+
+  try {
+    const fullJson = JSON.parse(jsonInput.value)
+    
+    // Header blocks
+    if (block.kind === 'identifier') return JSON.stringify({ identifier: fullJson.header?.identifier }, null, 2)
+    if (block.kind === 'command-id') return JSON.stringify({ commandId: fullJson.header?.commandId, commandName: fullJson.header?.commandName }, null, 2)
+    if (block.kind === 'length') return JSON.stringify({ length: block.text }, null, 2)
+    
+    // Payload level blocks
+    if (block.kind === 'feature-id') {
+      const fid = parseInt(block.text, 16)
+      const entry = fullJson.payload?.find(item => item.featureId === fid)
+      if (entry) return JSON.stringify(entry, null, 2)
+    }
+    
+    if (block.kind === 'mask') return JSON.stringify({ mask: fullJson.payload?.[0]?.mask }, null, 2)
+    
+    return null
+  } catch {
+    return null
+  }
 })
 
 // ── Device card (BLE advertisement) ──────────────────────────────────────────

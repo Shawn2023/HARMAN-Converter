@@ -505,8 +505,8 @@ html, body { height: 100%; font-family: var(--font-sans) }
 .editor::placeholder { color: var(--text-muted) }
 
 .editor::selection {
-  background: var(--accent);
-  color: #fff;
+  background: #2563eb !important;
+  color: #ffffff !important;
 }
 
 /* Scrollbar */

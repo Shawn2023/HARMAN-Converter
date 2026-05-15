@@ -13,19 +13,22 @@
       </div>
 
       <div class="header-actions">
+        <button class="btn-action lang-btn" @click="toggleLocale" :title="locale === 'en' ? '切换为中文' : 'Switch to English'">
+          {{ locale === 'en' ? '中文' : 'EN' }}
+        </button>
         <button class="btn-tag" @click="toggleEndian" :title="'Current: ' + endian">
           <span class="tag-dot"></span>
-          {{ endian === 'LE' ? 'LE Little Endian' : 'BE Big Endian' }}
+          {{ endian === 'LE' ? t('leLabel') : t('beLabel') }}
         </button>
-        <button class="btn-action theme-btn" @click="toggleTheme" :title="theme === 'dark' ? 'Switch to Light' : 'Switch to Dark'">
-          <svg v-if="theme === 'dark'" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 12.5A5.5 5.5 0 1 1 8 2.5a5.5 5.5 0 0 1 0 11z"/><circle fill="currentColor" cx="8" cy="8" r="3"/></svg>
-          <svg v-else viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M6 1a6 6 0 0 0 0 14 6.5 6.5 0 0 1 0-14z"/></svg>
-          {{ theme === 'dark' ? 'Light' : 'Dark' }}
+        <button class="btn-action theme-btn" @click="toggleTheme" :title="theme === 'dark' ? t('switchToLight') : t('switchToDark')">
+          <svg v-if="theme === 'dark'" viewBox="0 0 24 24" width="14" height="14"><circle cx="12" cy="12" r="5" fill="currentColor"/><path fill="currentColor" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <svg v-else viewBox="0 0 24 24" width="14" height="14"><path fill="currentColor" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          {{ theme === 'dark' ? t('light') : t('dark') }}
         </button>
         <div class="dropdown-wrap">
           <button class="btn-action" @click="showSamples = !showSamples">
             <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M3 2h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm1 2v8h8V4H4zm1 1h6v1H5zm0 2h4v1H5z"/></svg>
-            Sample Data
+            {{ t('sampleData') }}
           </button>
           <div v-if="showSamples" class="dropdown-menu" @mouseleave="showSamples = false">
             <div
@@ -41,27 +44,27 @@
         <div class="dropdown-wrap">
           <button class="btn-action" @click="showRef = !showRef">
             <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3.5h1.5V9h-1.5V4.5zm0 5.5h1.5v1.5h-1.5V10z"/></svg>
-            Protocol Reference
+            {{ t('protocolRef') }}
             <svg viewBox="0 0 10 6" width="8" height="8"><path fill="currentColor" d="M0 0l5 6 5-6z"/></svg>
           </button>
           <div v-if="showRef" class="dropdown-menu ref-menu" @mouseleave="showRef = false">
             <div class="ref-section">
-              <div class="ref-title">Identifier</div>
-              <div class="ref-row"><code>0xDD00</code> Primary / Standalone Device</div>
-              <div class="ref-row"><code>0xDD01</code> Secondary Device (LLS)</div>
+              <div class="ref-title">{{ t('refIdentifier') }}</div>
+              <div class="ref-row"><code>0xDD00</code> {{ t('refPrimary') }}</div>
+              <div class="ref-row"><code>0xDD01</code> {{ t('refSecondary') }}</div>
             </div>
             <div class="ref-section">
-              <div class="ref-title">Command IDs</div>
+              <div class="ref-title">{{ t('refCommandIDs') }}</div>
               <div class="ref-row" v-for="(v, k) in COMMAND_ID_MAP_REF" :key="k">
                 <code>{{ k }}</code> {{ v }}
               </div>
             </div>
             <div class="ref-section">
-              <div class="ref-title">Feature Groups</div>
-              <div class="ref-row">Common: <code>0x0000–0x0AFF</code></div>
+              <div class="ref-title">{{ t('refFeatureGroups') }}</div>
+              <div class="ref-row">{{ t('refCommon') }}: <code>0x0000–0x0AFF</code></div>
               <div class="ref-row">OTA: <code>0x0B00–0x0B3F</code></div>
               <div class="ref-row">EQ: <code>0x0E00–0x0EFF</code></div>
-              <div class="ref-row">Battery: <code>0x2E00–0x2EFF</code></div>
+              <div class="ref-row">{{ t('refBattery') }}: <code>0x2E00–0x2EFF</code></div>
             </div>
           </div>
         </div>
@@ -78,21 +81,21 @@
             <span>HEX</span>
           </div>
           <div class="panel-actions">
-            <button class="panel-btn" @click="formatHex" title="Format HEX by Protocol Blocks">Format</button>
-            <button class="icon-btn" @click="toggleHexSpaces" :title="hexSpaced ? 'Remove Spaces' : 'Add Spaces'">
+            <button class="panel-btn" @click="formatHex" :title="t('formatTitle')">{{ t('format') }}</button>
+            <button class="icon-btn" @click="toggleHexSpaces" :title="hexSpaced ? t('removeSpaces') : t('addSpaces')">
               <svg viewBox="0 0 16 16" width="14" height="14">
                 <text v-if="hexSpaced"  x="1" y="12" font-size="9" fill="currentColor" font-family="monospace">A B</text>
                 <text v-else            x="1" y="12" font-size="9" fill="currentColor" font-family="monospace">AB</text>
               </svg>
             </button>
-            <button class="icon-btn" @click="pasteHex" title="Paste">
+            <button class="icon-btn" @click="pasteHex" :title="t('paste')">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M5 1h6v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h1V1zm1 1v2h4V2H6zm-2 2v9h8V4H4z"/></svg>
             </button>
-            <button class="icon-btn" @click="copyHex" :class="{ copied: hexCopied }" title="Copy">
+            <button class="icon-btn" @click="copyHex" :class="{ copied: hexCopied }" :title="t('copy')">
               <svg v-if="!hexCopied" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4 2h8v1H5v9H4V2zm2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm0 1v8h8V5H6z"/></svg>
               <svg v-else viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 8l4 4 8-8-1-1-7 7-3-3z"/></svg>
             </button>
-            <button class="icon-btn" @click="clearHex" title="Clear">
+            <button class="icon-btn" @click="clearHex" :title="t('clear')">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4 4l8 8-1 1L3 5zm8 0L4 12l-1-1 8-8z"/></svg>
             </button>
           </div>
@@ -120,7 +123,7 @@
             v-if="!showFormatLegend"
             v-model="hexInput"
             class="editor hex-editor"
-            :placeholder="'Enter hex byte stream, e.g.: DD 00 01 00 01 00 04 00 04 00 06 00'"
+            :placeholder="t('hexPlaceholder')"
             spellcheck="false"
             @focus="hexFocused = true"
             @blur="hexFocused = false"
@@ -131,13 +134,13 @@
           </div>
           <div v-if="parseSummary" class="parse-summary" :class="`is-${parseSummary.status}`">
             <div class="parse-summary-line">
-              <strong>Parse Summary:</strong>
+              <strong>{{ t('parseSummary') }}:</strong>
               <span>{{ parseSummary.message }}</span>
             </div>
             <div class="parse-summary-line">
-              <span>Total: {{ parseSummary.totalBytes }} bytes</span>
-              <span>Parsed: {{ parseSummary.parsedBytes }} bytes</span>
-              <span>Unparsed: {{ parseSummary.unparsedBytes }} bytes</span>
+              <span>{{ t('total') }}: {{ parseSummary.totalBytes }} bytes</span>
+              <span>{{ t('parsed') }}: {{ parseSummary.parsedBytes }} bytes</span>
+              <span>{{ t('unparsed') }}: {{ parseSummary.unparsedBytes }} bytes</span>
             </div>
             <ul v-if="parseIssues.length" class="parse-issues">
               <li v-for="(issue, idx) in parseIssues" :key="`${issue.code}-${idx}`">
@@ -158,8 +161,8 @@
           ]"
           type="button"
           @click="toggleMode"
-          :title="convertMode === 'deserialize' ? 'Switch to Serialize (JSON → HEX)' : 'Switch to Deserialize (HEX → JSON)'"
-          :aria-label="convertMode === 'deserialize' ? 'Switch to Serialize' : 'Switch to Deserialize'"
+          :title="convertMode === 'deserialize' ? t('switchToSerialize') : t('switchToDeserialize')"
+          :aria-label="convertMode === 'deserialize' ? t('switchToSerialize') : t('switchToDeserialize')"
         >
           <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true">
             <path fill="currentColor" d="M2 6h12l-2.5-2.5 1.1-1.1L17 6.7l-4.4 4.3-1.1-1.1L14 7.4H2V6zm16 8H6l2.5 2.5-1.1 1.1L3 13.3 7.4 9l1.1 1.1L6 12.6h12V14z"/>
@@ -175,17 +178,17 @@
             <span>JSON</span>
           </div>
           <div class="panel-actions">
-            <button class="icon-btn" @click="compressJson" title="Minify">
+            <button class="icon-btn" @click="compressJson" :title="t('minify')">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 4h12v1H2zm2 3h8v1H4zm1 3h6v1H5z"/></svg>
             </button>
-            <button class="icon-btn" @click="expandJson" title="Pretty Print">
+            <button class="icon-btn" @click="expandJson" :title="t('prettyPrint')">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 2h12v2H2zm2 4h8v2H4zm-2 4h12v2H2z"/></svg>
             </button>
-            <button class="icon-btn" @click="copyJson" :class="{ copied: jsonCopied }" title="Copy">
+            <button class="icon-btn" @click="copyJson" :class="{ copied: jsonCopied }" :title="t('copy')">
               <svg v-if="!jsonCopied" viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4 2h8v1H5v9H4V2zm2 2h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm0 1v8h8V5H6z"/></svg>
               <svg v-else viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M2 8l4 4 8-8-1-1-7 7-3-3z"/></svg>
             </button>
-            <button class="icon-btn" @click="clearJson" title="Clear">
+            <button class="icon-btn" @click="clearJson" :title="t('clear')">
               <svg viewBox="0 0 16 16" width="14" height="14"><path fill="currentColor" d="M4 4l8 8-1 1L3 5zm8 0L4 12l-1-1 8-8z"/></svg>
             </button>
           </div>
@@ -194,7 +197,7 @@
           <textarea
             v-model="jsonInput"
             class="editor json-editor"
-            placeholder='{"header": { ... },"payload": { ... }}'
+            :placeholder="t('jsonPlaceholder')"
             spellcheck="false"
             @focus="jsonFocused = true"
             @blur="jsonFocused = false"
@@ -221,8 +224,8 @@
             <span v-if="deviceCard.modelName" class="device-model">{{ deviceCard.modelName }}</span>
             <span class="device-pid">PID: {{ deviceCard.pid }}</span>
             <span class="device-color">Color ID: {{ deviceCard.colorId }}</span>
-            <span v-if="deviceCard.loading" class="device-status">Loading product info...</span>
-            <span v-else-if="deviceCard.unresolved" class="device-status warn">PID not found in product list</span>
+            <span v-if="deviceCard.loading" class="device-status">{{ t('loadingProduct') }}</span>
+            <span v-else-if="deviceCard.unresolved" class="device-status warn">{{ t('pidNotFound') }}</span>
             <a v-if="deviceCard.configUrl" :href="deviceCard.configUrl" target="_blank" rel="noopener" class="device-cfg-link">
               📄 model_config.json ↗
             </a>
@@ -239,7 +242,7 @@
         {{ lastConversion }}
       </span>
       <span class="status-hint">
-        {{ convertMode === 'deserialize' ? 'Current mode: type HEX to auto-parse JSON' : 'Current mode: type JSON to auto-generate HEX' }}
+        {{ convertMode === 'deserialize' ? t('modeHintDeserialize') : t('modeHintSerialize') }}
       </span>
       <a class="status-link" href="https://github.com/harman-connected" target="_blank" rel="noopener">HARMAN Connected</a>
     </footer>
@@ -250,6 +253,97 @@
 import { ref, watch, computed } from 'vue'
 import { parseHexWithReport, jsonToHex, formatHexByBlocksDetailed } from './utils/protocol.js'
 import { SAMPLE_DATA, COMMAND_ID_MAP } from './utils/constants.js'
+
+// ── i18n ─────────────────────────────────────────────────────────────────────
+const locale = ref(localStorage.getItem('hpc-locale') || 'en')
+
+const messages = {
+  en: {
+    leLabel: 'LE Little Endian',
+    beLabel: 'BE Big Endian',
+    switchToLight: 'Switch to Light',
+    switchToDark: 'Switch to Dark',
+    light: 'Light',
+    dark: 'Dark',
+    sampleData: 'Sample Data',
+    protocolRef: 'Protocol Reference',
+    refIdentifier: 'Identifier',
+    refPrimary: 'Primary / Standalone Device',
+    refSecondary: 'Secondary Device (LLS)',
+    refCommandIDs: 'Command IDs',
+    refFeatureGroups: 'Feature Groups',
+    refCommon: 'Common',
+    refBattery: 'Battery',
+    format: 'Format',
+    formatTitle: 'Format HEX by Protocol Blocks',
+    removeSpaces: 'Remove Spaces',
+    addSpaces: 'Add Spaces',
+    paste: 'Paste',
+    copy: 'Copy',
+    clear: 'Clear',
+    hexPlaceholder: 'Enter hex byte stream, e.g.: DD 00 01 00 01 00 04 00 04 00 06 00',
+    parseSummary: 'Parse Summary',
+    total: 'Total',
+    parsed: 'Parsed',
+    unparsed: 'Unparsed',
+    switchToSerialize: 'Switch to Serialize (JSON → HEX)',
+    switchToDeserialize: 'Switch to Deserialize (HEX → JSON)',
+    minify: 'Minify',
+    prettyPrint: 'Pretty Print',
+    jsonPlaceholder: '{"header": { ... },"payload": { ... }}',
+    loadingProduct: 'Loading product info...',
+    pidNotFound: 'PID not found in product list',
+    modeHintDeserialize: 'Current mode: type HEX to auto-parse JSON',
+    modeHintSerialize: 'Current mode: type JSON to auto-generate HEX',
+  },
+  zh: {
+    leLabel: 'LE 小端序',
+    beLabel: 'BE 大端序',
+    switchToLight: '切换到亮色模式',
+    switchToDark: '切换到暗色模式',
+    light: '亮色',
+    dark: '暗色',
+    sampleData: '示例数据',
+    protocolRef: '协议参考',
+    refIdentifier: '标识符',
+    refPrimary: '主设备 / 独立设备',
+    refSecondary: '从设备 (LLS)',
+    refCommandIDs: '命令 ID',
+    refFeatureGroups: '功能分组',
+    refCommon: '通用',
+    refBattery: '电池',
+    format: '格式化',
+    formatTitle: '按协议块格式化 HEX',
+    removeSpaces: '移除空格',
+    addSpaces: '添加空格',
+    paste: '粘贴',
+    copy: '复制',
+    clear: '清除',
+    hexPlaceholder: '输入十六进制字节流，例如：DD 00 01 00 01 00 04 00 04 00 06 00',
+    parseSummary: '解析摘要',
+    total: '总计',
+    parsed: '已解析',
+    unparsed: '未解析',
+    switchToSerialize: '切换到序列化模式 (JSON → HEX)',
+    switchToDeserialize: '切换到反序列化模式 (HEX → JSON)',
+    minify: '压缩',
+    prettyPrint: '格式化',
+    jsonPlaceholder: '{"header": { ... },"payload": { ... }}',
+    loadingProduct: '加载产品信息中...',
+    pidNotFound: '产品列表中未找到该 PID',
+    modeHintDeserialize: '当前模式：输入 HEX 自动解析为 JSON',
+    modeHintSerialize: '当前模式：输入 JSON 自动生成 HEX',
+  },
+}
+
+function t(key) {
+  return messages[locale.value][key] ?? messages.en[key] ?? key
+}
+
+function toggleLocale() {
+  locale.value = locale.value === 'en' ? 'zh' : 'en'
+  localStorage.setItem('hpc-locale', locale.value)
+}
 
 // ── State ────────────────────────────────────────────────────────────────────
 const theme       = ref(localStorage.getItem('hpc-theme') || 'light')

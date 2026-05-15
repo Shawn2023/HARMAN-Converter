@@ -68,6 +68,47 @@
             </div>
           </div>
         </div>
+        <div class="dropdown-wrap">
+          <button class="btn-action" @click="showFidDict = !showFidDict">
+            <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M3 2v12h10V2H3zm1 1h8v10H4V3zm1 1v1h6V4H5zm0 2v1h6V6H5zm0 2v1h4V8H5z"/></svg>
+            {{ t('featureIdDictionary') }}
+            <svg viewBox="0 0 10 6" width="8" height="8"><path fill="currentColor" d="M0 0l5 6 5-6z"/></svg>
+          </button>
+          <div v-if="showFidDict" class="dropdown-menu fid-menu" @mouseleave="showFidDict = false">
+            <div class="fid-search-wrap">
+              <input 
+                v-model="fidSearchQuery" 
+                class="fid-search-input" 
+                :placeholder="t('searchPlaceholder')"
+                @click.stop
+              />
+            </div>
+            <div class="fid-table-container">
+              <table class="fid-table">
+                <thead>
+                  <tr>
+                    <th>FID</th>
+                    <th>Description</th>
+                    <th>FID</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, idx) in filteredFidRows" :key="idx">
+                    <td class="fid-cell-id"><code>{{ row[0]?.id }}</code></td>
+                    <td class="fid-cell-name">{{ row[0]?.name }}</td>
+                    <td class="fid-cell-id" v-if="row[1]"><code>{{ row[1]?.id }}</code></td>
+                    <td class="fid-cell-name" v-if="row[1]">{{ row[1]?.name }}</td>
+                    <td v-else colspan="2"></td>
+                  </tr>
+                  <tr v-if="filteredFidRows.length === 0">
+                    <td colspan="4" class="fid-no-results">{{ t('noResults') }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -271,7 +312,7 @@
 <script setup>
 import { ref, watch, computed } from 'vue'
 import { parseHexWithReport, jsonToHex, formatHexByBlocksDetailed } from './utils/protocol.js'
-import { SAMPLE_DATA, COMMAND_ID_MAP, MASK_BIT_DEFS } from './utils/constants.js'
+import { SAMPLE_DATA, COMMAND_ID_MAP, MASK_BIT_DEFS, FEATURE_ID_MAP } from './utils/constants.js'
 
 // ── i18n ─────────────────────────────────────────────────────────────────────
 const locale = ref(localStorage.getItem('hpc-locale') || 'en')
@@ -314,6 +355,9 @@ const messages = {
     pidNotFound: 'PID not found in product list',
     modeHintDeserialize: 'Current mode: type HEX to auto-parse JSON',
     modeHintSerialize: 'Current mode: type JSON to auto-generate HEX',
+    featureIdDictionary: 'FeatureID Dictionary',
+    searchPlaceholder: 'Search ID or description...',
+    noResults: 'No results found',
   },
   zh: {
     leLabel: 'LE 小端序',
@@ -352,6 +396,9 @@ const messages = {
     pidNotFound: '产品列表中未找到该 PID',
     modeHintDeserialize: '当前模式：输入 HEX 自动解析为 JSON',
     modeHintSerialize: '当前模式：输入 JSON 自动生成 HEX',
+    featureIdDictionary: 'FeatureID 字典',
+    searchPlaceholder: '搜索 ID 或描述...',
+    noResults: '未找到结果',
   },
 }
 
@@ -378,6 +425,8 @@ const hexSpaced   = ref(true)
 const jsonCopied  = ref(false)
 const showSamples = ref(false)
 const showRef     = ref(false)
+const showFidDict = ref(false)
+const fidSearchQuery = ref('')
 const lastConversion = ref('')
 const convertMode = ref('deserialize') // deserialize: HEX -> JSON, serialize: JSON -> HEX
 const swapAnimating = ref(false)
@@ -415,6 +464,26 @@ const maskDetailHex = computed(() => {
   const hex = maskBlock.text.padStart(4, '0')
   const val = parseInt(hex.slice(2, 4) + hex.slice(0, 2), 16)
   return '0x' + val.toString(16).toUpperCase().padStart(4, '0')
+})
+
+const filteredFidRows = computed(() => {
+  const query = fidSearchQuery.value.toLowerCase()
+  const allFids = Object.entries(FEATURE_ID_MAP).map(([id, info]) => ({
+    id: `0x${parseInt(id).toString(16).toUpperCase().padStart(4, '0')}`,
+    name: info.name
+  }))
+
+  const filtered = allFids.filter(f => 
+    f.id.toLowerCase().includes(query) || 
+    f.name.toLowerCase().includes(query)
+  )
+
+  // Chunk into pairs (2-column layout)
+  const rows = []
+  for (let i = 0; i < filtered.length; i += 2) {
+    rows.push([filtered[i], filtered[i + 1]])
+  }
+  return rows
 })
 
 // ── Device card (BLE advertisement) ──────────────────────────────────────────

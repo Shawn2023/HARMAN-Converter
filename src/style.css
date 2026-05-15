@@ -185,6 +185,31 @@ html, body { height: 100%; font-family: var(--font-sans) }
   color: var(--accent); margin-right: 6px;
 }
 
+/* ─── FeatureID Dictionary ───────────────────────────────────────────────── */
+.fid-menu { min-width: 500px; max-height: 500px; padding: 0 }
+.fid-search-wrap {
+  position: sticky; top: 0; background: var(--bg-dropdown);
+  padding: 12px; border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+.fid-search-input {
+  width: 100%; padding: 8px 12px;
+  background: var(--bg-editor); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-size: 13px; outline: none;
+}
+.fid-search-input:focus { border-color: var(--accent) }
+.fid-table-container { padding: 8px }
+.fid-table { width: 100%; border-collapse: collapse; font-size: 12px }
+.fid-table th {
+  text-align: left; padding: 8px; border-bottom: 2px solid var(--border);
+  color: var(--text-dim); font-weight: 600; font-size: 11px; text-transform: uppercase;
+}
+.fid-table td { padding: 8px; border-bottom: 1px solid var(--border) }
+.fid-cell-id { width: 70px; font-family: var(--font-mono); color: var(--accent) }
+.fid-cell-name { color: var(--text); min-width: 150px }
+.fid-no-results { text-align: center; padding: 24px; color: var(--text-dim) }
+
 /* ─── Main workspace ─────────────────────────────────────────────────────── */
 .workspace {
   display: flex;

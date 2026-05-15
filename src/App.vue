@@ -471,6 +471,9 @@ watch(hoveredFeatureId, (newId) => {
   const editor = document.querySelector('.json-editor')
   if (!editor) return
 
+  // Need to focus to see selection on some browsers/styles
+  editor.focus()
+
   const text = jsonInput.value
   // Look for "featureId": "0xXXXX"
   const searchPattern = `"featureId": "${newId}"`
@@ -483,15 +486,18 @@ watch(hoveredFeatureId, (newId) => {
 
   // Find the end of the object
   let end = text.indexOf('}', index)
-  if (end === -1) end = index + searchPattern.length
-  else end += 1
+  if (end === -1) {
+    end = index + searchPattern.length
+  } else {
+    end += 1
+  }
 
   editor.setSelectionRange(start, end)
 
   // Scroll to make it visible
-  const lineHeight = 18 // approximate
+  const lineHeight = 21.5 // line-height is 1.65 * 13px ≈ 21.45px
   const linesBefore = text.slice(0, start).split('\n').length
-  editor.scrollTop = (linesBefore - 3) * lineHeight
+  editor.scrollTop = (linesBefore - 1) * lineHeight
 })
 
 // ── Mask detail ──────────────────────────────────────────────────────────────

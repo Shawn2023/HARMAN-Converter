@@ -155,9 +155,9 @@
                 v-for="(blk, idx) in formatBlocks"
                 :key="`${blk.kind}-${idx}-${blk.text}`"
                 class="format-block"
-                :class="[`k-${blk.kind}`, { 'is-hovered': hoveredBlockIndex === idx }]"
-                @mouseenter="hoveredBlockIndex = idx"
-                @mouseleave="hoveredBlockIndex = -1"
+                :class="[`k-${blk.kind}`, { 'is-hovered': idx === hoveredBlockIdx }]"
+                @mouseenter="hoveredBlockIdx = idx"
+                @mouseleave="hoveredBlockIdx = -1"
               >
                 <span class="blk-hex">{{ blk.text }}</span>
                 <span class="blk-label">{{ blk.label || (blk.kind !== 'value' ? blk.kind : '\u00a0') }}</span>
@@ -264,7 +264,6 @@
         </div>
         <div class="panel-body">
           <textarea
-            ref="jsonTextArea"
             v-model="jsonInput"
             class="editor json-editor"
             :placeholder="t('jsonPlaceholder')"
@@ -272,9 +271,6 @@
             @focus="jsonFocused = true"
             @blur="jsonFocused = false"
           />
-          <div v-if="hoveredBlockIndex !== -1 && hoveredBlockJson" class="json-hover-hint">
-            <pre>{{ hoveredBlockJson }}</pre>
-          </div>
           <div v-if="jsonError" class="error-bar">
             <svg viewBox="0 0 16 16" width="13" height="13"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm-.75 3.5h1.5V9h-1.5V4.5zm0 5.5h1.5v1.5h-1.5V10z"/></svg>
             {{ jsonError }}
@@ -425,7 +421,6 @@ function toggleLocale() {
 }
 
 // ── State ────────────────────────────────────────────────────────────────────
-const jsonTextArea = ref(null)
 const theme       = ref(localStorage.getItem('hpc-theme') || 'light')
 const endian      = ref('LE')
 const hexInput    = ref('')
@@ -441,7 +436,6 @@ const showSamples = ref(false)
 const showRef     = ref(false)
 const showFidDict = ref(false)
 const fidSearchQuery = ref('')
-const hoveredBlockIndex = ref(-1)
 const lastConversion = ref('')
 const convertMode = ref('deserialize') // deserialize: HEX -> JSON, serialize: JSON -> HEX
 const swapAnimating = ref(false)
@@ -450,8 +444,55 @@ const parseIssues  = ref([])
 const showFormatLegend = ref(false)
 const formatLegend = ref([])
 const formatBlocks = ref([])
+const hoveredBlockIdx = ref(-1)
 let   lastSource  = '' // 'hex' | 'json'
 let   applyingFormat = false
+
+// ── Linkage logic ────────────────────────────────────────────────────────────
+// Find the corresponding featureId in the JSON output from a format block index
+const hoveredFeatureId = computed(() => {
+  if (hoveredBlockIdx.value === -1 || !showFormatLegend.value) return null
+  const blk = formatBlocks.value[hoveredBlockIdx.value]
+  if (!blk) return null
+
+  // We look for feature-id or mask kind and find the hex value
+  // But more reliably, we know feature-id blocks contain the hex: "43 2D" etc.
+  if (blk.kind === 'feature-id') {
+    // bytes are LE, e.g. "43 2D" -> 0x2D43
+    const bytes = blk.text.split(' ')
+    const id = parseInt(bytes[1] + bytes[0], 16)
+    return isNaN(id) ? null : '0x' + id.toString(16).toUpperCase().padStart(4, '0')
+  }
+  return null
+})
+
+watch(hoveredFeatureId, (newId) => {
+  if (!newId) return
+  const editor = document.querySelector('.json-editor')
+  if (!editor) return
+
+  const text = jsonInput.value
+  // Look for "featureId": "0xXXXX"
+  const searchPattern = `"featureId": "${newId}"`
+  const index = text.indexOf(searchPattern)
+  if (index === -1) return
+
+  // Find the start of the object { ... "featureId": "0xXXXX" ... }
+  let start = text.lastIndexOf('{', index)
+  if (start === -1) start = index
+
+  // Find the end of the object
+  let end = text.indexOf('}', index)
+  if (end === -1) end = index + searchPattern.length
+  else end += 1
+
+  editor.setSelectionRange(start, end)
+
+  // Scroll to make it visible
+  const lineHeight = 18 // approximate
+  const linesBefore = text.slice(0, start).split('\n').length
+  editor.scrollTop = (linesBefore - 3) * lineHeight
+})
 
 // ── Mask detail ──────────────────────────────────────────────────────────────
 const maskDetail = computed(() => {
@@ -499,62 +540,6 @@ const filteredFidRows = computed(() => {
     rows.push([filtered[i], filtered[i + 1]])
   }
   return rows
-})
-
-const hoveredBlockJson = computed(() => {
-  if (hoveredBlockIndex.value === -1) return null
-  const block = formatBlocks.value[hoveredBlockIndex.value]
-  if (!block || !jsonInput.value) return null
-
-  try {
-    const fullJson = JSON.parse(jsonInput.value)
-    let result = null
-    let searchKey = ""
-
-    // Header blocks
-    if (block.kind === 'identifier') {
-      result = { identifier: fullJson.header?.identifier }
-      searchKey = `"identifier":`
-    } else if (block.kind === 'command-id') {
-      result = { commandId: fullJson.header?.commandId, commandName: fullJson.header?.commandName }
-      searchKey = `"commandId":`
-    } else if (block.kind === 'length') {
-      result = { length: block.text }
-      searchKey = `"length":`
-    } else if (block.kind === 'feature-id') {
-      const fid = parseInt(block.text, 16)
-      const entry = fullJson.payload?.find(item => item.featureId === fid)
-      if (entry) {
-        result = entry
-        searchKey = `"featureId": ${fid}`
-      }
-    } else if (block.kind === 'mask') {
-      result = { mask: fullJson.payload?.[0]?.mask }
-      searchKey = `"mask":`
-    }
-
-    if (result) {
-      // Auto-scroll logic
-      if (jsonTextArea.value && searchKey) {
-        const text = jsonInput.value
-        const pos = text.indexOf(searchKey)
-        if (pos !== -1) {
-          const lines = text.substring(0, pos).split('\n').length
-          const textarea = jsonTextArea.value
-          const lineHeight = 18 // Estimate or get from CSS
-          const targetScroll = (lines - 1) * lineHeight
-          textarea.scrollTo({
-            top: Math.max(0, targetScroll - textarea.clientHeight / 3),
-            behavior: 'smooth'
-          })
-        }
-      }
-      return JSON.stringify(result, null, 2)
-    }
-    return null
-  } catch {
-    return null
-  }
 })
 
 // ── Device card (BLE advertisement) ──────────────────────────────────────────

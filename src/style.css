@@ -364,6 +364,14 @@ html, body { height: 100%; font-family: var(--font-sans) }
   overflow-wrap: anywhere;
   word-break: break-all;
   max-width: 100%;
+  cursor: default;
+  transition: transform var(--transition);
+}
+
+.format-block.is-hovered {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
 }
 
 .blk-hex {
@@ -383,13 +391,6 @@ html, body { height: 100%; font-family: var(--font-sans) }
   white-space: nowrap;
   min-height: 1em;
   display: block;
-}
-
-.format-block.is-hovered {
-  background: var(--bg-hover);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
-  transform: translateY(-1px);
 }
 
 .k-field { color: #d97706 }
@@ -502,6 +503,11 @@ html, body { height: 100%; font-family: var(--font-sans) }
   transition: background var(--transition), color var(--transition);
 }
 .editor::placeholder { color: var(--text-muted) }
+
+.editor::selection {
+  background: var(--accent);
+  color: #fff;
+}
 
 /* Scrollbar */
 .editor::-webkit-scrollbar { width: 6px; height: 6px }
@@ -629,41 +635,6 @@ html, body { height: 100%; font-family: var(--font-sans) }
 }
 
 /* ─── Device card ────────────────────────────────────────────────────────── */
-.json-editor.has-highlight {
-  /* Removed: opacity/blur */
-}
-
-.json-hover-hint {
-  position: absolute;
-  top: 12px;
-  right: 24px; /* Move to right to avoid blocking left side content */
-  background: var(--bg-panel);
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  z-index: 50;
-  max-width: 200px; /* Reduced size */
-  max-height: 200px;
-  overflow: hidden;
-  pointer-events: none;
-  animation: slideIn 0.2s ease-out;
-}
-
-.json-hover-hint pre {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 11px; /* Smaller font */
-  color: var(--accent);
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-@keyframes slideIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 .device-card {
   display: flex; align-items: center; gap: 14px;
   padding: 10px 14px;

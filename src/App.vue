@@ -399,7 +399,7 @@ const maskDetail = computed(() => {
   if (isNaN(maskVal)) return null
   const binStr = maskVal.toString(2).padStart(16, '0')
   return MASK_BIT_DEFS
-    .filter(d => d.size > 0)
+    .slice()
     .sort((a, b) => b.bit - a.bit)
     .map(def => ({
       bit: def.bit,

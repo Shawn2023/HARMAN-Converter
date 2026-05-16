@@ -450,26 +450,35 @@ let   lastSource  = '' // 'hex' | 'json'
 let   applyingFormat = false
 
 // ── Linkage logic ────────────────────────────────────────────────────────────
-const getFeatureIdFromBlock = (blockIdx) => {
+const getSearchTargetFromBlock = (blockIdx) => {
   if (blockIdx === -1) return null
   const blk = formatBlocks.value[blockIdx]
   if (!blk) return null
 
+  // Process BLE fields and identifiers
+  if (blk.kind === 'pid' || blk.kind === 'mask') return { type: 'key', value: blk.kind }
+  if (blk.kind === 'field' && blk.label) return { type: 'key', value: blk.label }
+
+  // Helper to parse LE hex block text (e.g. "432D" or "43 2D")
+  const parseLE = (hexStr) => {
+    // Remove all whitespace
+    const clean = hexStr.replace(/\s+/g, '')
+    if (clean.length < 4) return null
+    // Extract bytes: byte0 is first 2 chars, byte1 is next 2 chars
+    const byte0 = clean.substring(0, 2)
+    const byte1 = clean.substring(2, 4)
+    return '0x' + (byte1 + byte0).toUpperCase()
+  }
+
   if (blk.kind === 'feature-id') {
-    const bytes = blk.text.split(' ')
-    if (bytes.length < 2) return null
-    const id = parseInt(bytes[1] + bytes[0], 16)
-    return isNaN(id) ? null : '0x' + id.toString(16).toUpperCase().padStart(4, '0')
+    return { type: 'fid', value: parseLE(blk.text) }
   }
 
   if (blk.kind === 'length') {
     for (let i = blockIdx - 1; i >= 0; i--) {
       const prev = formatBlocks.value[i]
       if (prev.kind === 'feature-id') {
-        const bytes = prev.text.split(' ')
-        if (bytes.length < 2) break
-        const id = parseInt(bytes[1] + bytes[0], 16)
-        return isNaN(id) ? null : '0x' + id.toString(16).toUpperCase().padStart(4, '0')
+        return { type: 'fid', value: parseLE(prev.text) }
       }
       if (['identifier', 'command-id', 'mask', 'pid'].includes(prev.kind)) break
     }
@@ -478,32 +487,110 @@ const getFeatureIdFromBlock = (blockIdx) => {
 }
 
 const scrollToFeature = (idx) => {
-  const fid = getFeatureIdFromBlock(idx)
-  if (!fid) return
+  const target = getSearchTargetFromBlock(idx)
+  if (!target || !target.value) return
 
   const editor = document.querySelector('.json-editor')
   if (!editor) return
 
   const text = jsonInput.value
-  const searchPattern = `"featureId": "${fid}"`
-  const index = text.indexOf(searchPattern)
+  let index = -1
+
+  if (target.type === 'fid') {
+    const fid = target.value
+    const numericFid = fid.replace('0x', '')
+    const patterns = [
+      `"featureId": "${fid}"`,
+      `"featureId": "0x${numericFid}"`,
+      `"${fid}"`,
+      `"0x${numericFid}"`
+    ]
+    for (const p of patterns) {
+      index = text.indexOf(p)
+      if (index !== -1) break
+    }
+  } else if (target.type === 'key') {
+    const p = `"${target.value}":`
+    index = text.indexOf(p)
+  }
+
   if (index === -1) return
 
-  let start = text.lastIndexOf('{', index)
-  if (start === -1) start = index
-  let end = text.indexOf('}', index)
-  if (end === -1) end = index + searchPattern.length
-  else end += 1
+  // Block boundary detection depending on target type
+  let start = index
+  let end = -1
+
+  if (target.type === 'fid') {
+    // For features, find the beginning of the containing object going backwards
+    let objStart = text.lastIndexOf('{', index)
+    if (objStart === -1) objStart = index
+    start = objStart
+    
+    // Attempt to include leading spaces for nicer highlight
+    let lineStart = text.lastIndexOf('\n', start)
+    if (lineStart !== -1 && text.substring(lineStart + 1, start).trim() === '') {
+      start = lineStart + 1
+    }
+
+    let braceCount = 0
+    for (let i = objStart; i < text.length; i++) {
+      if (text[i] === '{') braceCount++
+      else if (text[i] === '}') {
+        braceCount--
+        if (braceCount === 0) {
+          end = i + 1
+          if (text[end] === ',') end++
+          break
+        }
+      }
+    }
+  } else {
+    // For keys, highlight the line or the forward-opening object
+    start = text.lastIndexOf('\n', index)
+    if (start === -1) start = 0
+    else start += 1
+
+    let nextNewline = text.indexOf('\n', index)
+    if (nextNewline === -1) nextNewline = text.length
+    end = nextNewline
+
+    let firstOpenObj = text.indexOf('{', index)
+    if (firstOpenObj !== -1 && firstOpenObj < nextNewline) {
+      let braceCount = 0
+      for (let i = firstOpenObj; i < text.length; i++) {
+        if (text[i] === '{') braceCount++
+        else if (text[i] === '}') {
+          braceCount--
+          if (braceCount === 0) {
+            end = i + 1
+            if (text[end] === ',') end++
+            break
+          }
+        }
+      }
+    } else {
+      if (text[end] === ',') end++
+    }
+  }
+
+  if (end === -1) end = text.indexOf('}', index) + 1
 
   editor.focus()
-  editor.setSelectionRange(start, end)
-
-  // Precise scrolling
-  const lines = text.substring(0, start).split('\n')
-  const lineNum = lines.length
-  const totalLines = text.split('\n').length
-  const scrollRatio = (lineNum - 1) / totalLines
-  editor.scrollTop = scrollRatio * editor.scrollHeight - (editor.clientHeight / 3)
+  // Add slight delay to ensure selection works when clicking away from textarea
+  setTimeout(() => {
+    editor.setSelectionRange(start, end)
+    
+    // Smooth scrolling to the matched element
+    requestAnimationFrame(() => {
+      const lineText = text.substring(0, start)
+      const lineNum = lineText.split('\n').length
+      const totalLines = text.split('\n').length
+      
+      const lineHeight = editor.scrollHeight / totalLines
+      const targetScroll = (lineNum - 1) * lineHeight
+      editor.scrollTop = targetScroll - (editor.clientHeight / 3)
+    })
+  }, 10)
 }
 
 // ── Mask detail ──────────────────────────────────────────────────────────────

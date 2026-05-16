@@ -37,6 +37,8 @@ html, body { height: 100%; font-family: var(--font-sans) }
   --btn-text:   #c9d1d9;
   --scrollbar:  #30363d;
   --status-bg:  #0d1117;
+  --selection-bg: transparent;
+  --selection-text: #fbbf24; /* High-contrast golden yellow for dark mode */
   color-scheme: dark;
 }
 
@@ -65,6 +67,8 @@ html, body { height: 100%; font-family: var(--font-sans) }
   --btn-text:   #1f2328;
   --scrollbar:  #d0d7de;
   --status-bg:  #f6f8fa;
+  --selection-bg: transparent;
+  --selection-text: #b91c1c; /* Deep striking crimson red for light mode */
   color-scheme: light;
 }
 
@@ -362,6 +366,15 @@ html, body { height: 100%; font-family: var(--font-sans) }
   border-bottom: 2px solid currentColor;
   white-space: normal;
   overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.1s ease;
+}
+.format-block:hover {
+  filter: brightness(1.1);
+}
+.format-block:active {
+  transform: scale(1.08); /* 小小吐出来变大的感觉 */
+}
   word-break: break-all;
   max-width: 100%;
   cursor: default;
@@ -505,8 +518,8 @@ html, body { height: 100%; font-family: var(--font-sans) }
 .editor::placeholder { color: var(--text-muted) }
 
 .editor::selection {
-  background: #2563eb !important;
-  color: #ffffff !important;
+  background: var(--selection-bg, transparent);
+  color: var(--selection-text, inherit);
 }
 
 /* Scrollbar */

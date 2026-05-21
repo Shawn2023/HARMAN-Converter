@@ -1,3 +1,5 @@
+import { FEATURE_FIELDS } from './feature-fields.js'
+
 // Command ID definitions
 export const COMMAND_ID_MAP = {
   0x0001: { name: 'Get Command',                  dir: 'App → Device', category: 'Device Info' },
@@ -29,10 +31,10 @@ export const FEATURE_ID_MAP = {
   0x000B: { name: 'Secondary Device BT MAC Address',                       perm: 'R',     valueSize: 6 },
   0x000C: { name: 'Firmware Version',                                      perm: 'R',     maxSize: 6 },
   0x000D: { name: 'Left/Primary Device Battery Status',                    perm: 'R/N',   valueSize: 1 },
-  0x000E: { name: 'Right/Secondary Device Battery Status',                 perm: 'R/N',   valueSize: 1 },
+  0x000E: { name: 'Right/Secondary Device Battery Status',                  perm: 'R/N',   valueSize: 1 },
   0x000F: { name: 'Factory Reset',                                         perm: 'W',     valueSize: 0 },
   0x0010: { name: 'BT Connection Status',                                  perm: 'R/N',   valueSize: 1 },
-  0x0011: { name: 'Manual Power Off',                                      perm: 'W/N',   valueSize: 2 },
+  0x0011: { name: 'Manual Power Off',                                       perm: 'W/N',   valueSize: 2 },
   0x0012: { name: 'Auto Power Off',                                        perm: 'R/W',   valueSize: 2 },
   0x0013: { name: 'Auto Standby (Deprecated)',                             perm: 'R/W',   valueSize: 2 },
   0x0014: { name: 'Game Chat Balance',                                     perm: 'R/W/N', valueSize: 1 },
@@ -245,6 +247,13 @@ export function getFeatureGroup(featureId) {
   }
   return 'Unknown'
 }
+
+// Merge bit-field descriptions from feature-fields.js into FEATURE_ID_MAP.
+// To add or update descriptions, edit src/utils/feature-fields.js only.
+Object.entries(FEATURE_FIELDS).forEach(([id, fields]) => {
+  const entry = FEATURE_ID_MAP[Number(id)]
+  if (entry) entry.fields = fields
+})
 
 // Color ID table
 export const COLOR_ID_MAP = {

@@ -95,9 +95,9 @@
                 </thead>
                 <tbody>
                   <tr v-for="(row, idx) in filteredFidRows" :key="idx">
-                    <td class="fid-cell-id"><code>{{ row[0]?.id }}</code></td>
+                    <td class="fid-cell-id clickable" :class="{ 'has-fields': row[0]?.fields }" @click.stop="selectedFid = row[0]"><code>{{ row[0]?.id }}</code></td>
                     <td class="fid-cell-name">{{ row[0]?.name }}</td>
-                    <td class="fid-cell-id" v-if="row[1]"><code>{{ row[1]?.id }}</code></td>
+                    <td class="fid-cell-id clickable" v-if="row[1]" :class="{ 'has-fields': row[1]?.fields }" @click.stop="selectedFid = row[1]"><code>{{ row[1]?.id }}</code></td>
                     <td class="fid-cell-name" v-if="row[1]">{{ row[1]?.name }}</td>
                     <td v-else colspan="2"></td>
                   </tr>
@@ -111,6 +111,39 @@
         </div>
       </div>
     </header>
+
+    <!-- Feature ID Detail Modal -->
+    <Teleport to="body">
+      <div v-if="selectedFid" class="fid-modal-backdrop" @click.self="selectedFid = null">
+        <div class="fid-modal">
+          <div class="fid-modal-header">
+            <span class="fid-modal-title"><code>{{ selectedFid.id }}</code> &nbsp; {{ selectedFid.name }}</span>
+            <button class="fid-modal-close" @click="selectedFid = null">✕</button>
+          </div>
+          <div class="fid-modal-meta">
+            <span>Permission: <code>{{ selectedFid.perm }}</code></span>
+            <span>Value Size: <code>{{ selectedFid.valueSize }} byte{{ selectedFid.valueSize === 1 ? '' : 's' }}</code></span>
+          </div>
+          <table v-if="selectedFid.fields" class="fid-modal-table">
+            <thead>
+              <tr>
+                <th>Bits</th>
+                <th>Field Name</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(f, i) in selectedFid.fields" :key="i">
+                <td class="fid-modal-bits"><code>{{ f.bits }}</code></td>
+                <td class="fid-modal-fname">{{ f.name }}</td>
+                <td class="fid-modal-desc">{{ f.desc }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="fid-modal-no-fields">No bit-field detail documented for this Feature ID.</div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Main panels -->
     <main class="workspace" :class="{ 'serialize-mode': convertMode === 'serialize' }">
@@ -423,6 +456,10 @@ function toggleLocale() {
 
 // ── State ────────────────────────────────────────────────────────────────────
 const theme       = ref(localStorage.getItem('hpc-theme') || 'light')
+watch(theme, (val) => {
+  document.documentElement.classList.toggle('dark', val === 'dark')
+  document.documentElement.classList.toggle('light', val === 'light')
+}, { immediate: true })
 const endian      = ref('LE')
 const hexInput    = ref('')
 const jsonInput   = ref('')
@@ -437,6 +474,7 @@ const showSamples = ref(false)
 const showRef     = ref(false)
 const showFidDict = ref(false)
 const fidSearchQuery = ref('')
+const selectedFid = ref(null)
 const lastConversion = ref('')
 const convertMode = ref('deserialize') // deserialize: HEX -> JSON, serialize: JSON -> HEX
 const swapAnimating = ref(false)
@@ -625,7 +663,10 @@ const filteredFidRows = computed(() => {
   const query = fidSearchQuery.value.toLowerCase()
   const allFids = Object.entries(FEATURE_ID_MAP).map(([id, info]) => ({
     id: `0x${parseInt(id).toString(16).toUpperCase().padStart(4, '0')}`,
-    name: info.name
+    name: info.name,
+    perm: info.perm || '-',
+    valueSize: info.valueSize != null ? info.valueSize : (info.maxSize != null ? `max ${info.maxSize}` : '-'),
+    fields: info.fields || null,
   }))
 
   const filtered = allFids.filter(f => 

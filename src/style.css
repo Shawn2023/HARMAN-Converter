@@ -439,16 +439,6 @@ html, body { height: 100%; font-family: var(--font-sans) }
 .format-block:active {
   transform: scale(1.08);
 }
-  word-break: break-all;
-  max-width: 100%;
-  cursor: default;
-  transition: transform var(--transition);
-}
-
-/* 修复规则未闭合问题 */
-.format-block:active {
-  transform: scale(1.08);
-}
 
 .blk-hex {
   font-family: var(--font-mono);

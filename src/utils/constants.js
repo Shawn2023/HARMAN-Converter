@@ -661,7 +661,7 @@ export const SERVICE_DATA_TYPE_MAP = {
   0x0F: { name: 'Device Misc Info 2',     size: 2 },
 }
 
-// Sample data — sourced from protocol spec v5.0.10 examples + hand-crafted verification cases
+// Sample data — sourced from protocol spec v5.0.13 examples + hand-crafted verification cases
 export const SAMPLE_DATA = [
   // ── 4.1.1 GET Command (p.17) ─────────────────────────────────────────────
   {

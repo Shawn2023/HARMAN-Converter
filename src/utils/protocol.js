@@ -1,5 +1,5 @@
 /**
- * HARMAN Protocol v5.0.10 — Binary ↔ JSON converter
+ * HARMAN Protocol v5.0.13 — Binary ↔ JSON converter
  * Little-Endian byte order throughout.
  */
 
@@ -57,6 +57,8 @@ function parseStatusCode(val) {
 
 function parseFeatureValue(featureId, vb) {
   const raw = bytesToHex(vb)
+  const expectedSize = FEATURE_ID_MAP[featureId]?.valueSize
+  if (expectedSize != null && vb.length !== expectedSize) return { raw, length: vb.length }
 
   switch (featureId) {
     case 0x0000: {              // Unsupported Feature ID List
@@ -406,6 +408,7 @@ function parseFeatureList(bytes, hasStatus) {
   const result = {}
 
   if (hasStatus) {
+    if (bytes.length < 2) throw new Error('Feature response is missing its 2-byte status code')
     const sc = readU16(bytes, 0)
     result.statusCode = parseStatusCode(sc)
     cursor = 2
@@ -417,6 +420,9 @@ function parseFeatureList(bytes, hasStatus) {
     const featureId  = readU16(bytes, cursor)
     const valueSize  = readU16(bytes, cursor + 2)
     cursor += 4
+    if (cursor + valueSize > bytes.length) {
+      throw new Error(`${h(featureId)} declares ${valueSize} value byte(s), but only ${bytes.length - cursor} remain`)
+    }
     const vb = bytes.slice(cursor, cursor + valueSize)
     cursor += valueSize
 
@@ -433,6 +439,7 @@ function parseFeatureList(bytes, hasStatus) {
       ...rest,
     })
   }
+  if (cursor !== bytes.length) throw new Error(`${bytes.length - cursor} trailing byte(s) in feature payload`)
   result.features = features
   return result
 }
@@ -448,7 +455,7 @@ function parseGetRequest(bytes) {
 }
 
 function parseOTANotification(bytes) {
-  if (bytes.length < 10) return { raw: bytesToHex(bytes) }
+  if (bytes.length !== 12) return { raw: bytesToHex(bytes) }
   const pct = readU16(bytes, 2)
   return {
     statusCode:     parseStatusCode(readU16(bytes, 0)),
@@ -494,7 +501,7 @@ function parseMaskField(name, bytes) {
     case 'colorId':
       return { raw: h(bytes[0], 2), color: COLOR_ID_MAP[bytes[0]] || 'Unknown' }
     case 'batteryInfo':
-      return { charging: !!(bytes[0] >> 7), level: bytes[0] & 0x7F, low: (bytes[0] & 0x7F) === 0x7F }
+      return { raw: h(bytes[0], 2), charging: !!(bytes[0] >> 7), level: bytes[0] & 0x7F }
     case 'macAddress':
       return [...bytes].map(b => b.toString(16).padStart(2,'0').toUpperCase()).join(':')
     case 'firmwareVersion3B':
@@ -502,25 +509,34 @@ function parseMaskField(name, bytes) {
     case 'firmwareVersion5B':
       return `v${bytes[0]}.${bytes[1]}.${bytes[2]}.${bytes[3]}.${bytes[4]}`
     case 'stereoGroupId':
-      return { groupId: bytes[0], paired: bytes[0] !== 0 }
+      return { raw: h(bytes[0], 2), groupId: bytes[0] }
     case 'deviceMiscInfo': {
       const v = readU16(bytes, 0)
       return {
         raw: h(v), connectable: !!(v >> 15), standby: !!((v >> 14) & 1),
         muted: !!((v >> 13) & 1), led: !!((v >> 12) & 1),
         mic1: !!((v >> 11) & 1), mic2: !!((v >> 10) & 1),
+        bassBoost: ['Off', 'Low', 'Medium', 'High'][(v >> 8) & 0x3] || 'Reserved',
+        brEdrSupported: !!((v >> 7) & 1),
         jblApp: !!((v >> 6) & 1), dongle: !!((v >> 5) & 1),
         soundbar: !!((v >> 4) & 1), usb: !!((v >> 3) & 1), aux: !!((v >> 2) & 1),
+        hotelMode: !!((v >> 1) & 1),
       }
     }
     case 'partyMethodInfo': {
       const v = bytes[0]
-      return { raw: h(v, 2), auracast: !!(v >> 7), lls: !!((v >> 6) & 1), oneCast: !!((v >> 5) & 1) }
+      return { raw: h(v, 2), auracastSupported: !!(v >> 7), longLastingStereoSupported: !!((v >> 6) & 1) }
     }
     case 'partyInfo': {
       const v = readU16(bytes, 0)
-      const groupType = ['Normal', 'Party', 'Stereo'][(v >> 13) & 0x3] || 'Unknown'
-      return { raw: h(v), partyOn: !!(v >> 15), groupType, canJoin: !!(v & 1) }
+      return {
+        raw: h(v), partyStatus: !!(v >> 15),
+        groupType: ['Single', 'Party (Auracast / PartyTogether)', 'Stereo'][(v >> 13) & 0x3] || 'Reserved',
+        connectionStatus: ['Not connected', 'Connecting', 'Connected', 'Wired (Daisy Chain)'][(v >> 11) & 0x3],
+        role: ['Normal', 'Secondary', 'Primary'][(v >> 9) & 0x3] || 'Reserved',
+        channelType: ['Full channel', 'Left channel', 'Right channel'][(v >> 7) & 0x3] || 'Reserved',
+        partyJoinable: !!((v >> 6) & 1),
+      }
     }
     case 'partyLightInfo': {
       const v = readU16(bytes, 0)
@@ -539,18 +555,24 @@ function parseMaskField(name, bytes) {
 }
 
 function parseExtendedServiceData(bytes) {
+  if (bytes.length < 2) return null
   const pid    = readU16(bytes, 0)
   const fields = []
   let cursor   = 2
 
   while (cursor + 2 <= bytes.length) {
     const len   = bytes[cursor]
-    if (cursor + 1 + len > bytes.length) break
+    if (len < 1 || cursor + 1 + len > bytes.length) break
     const type  = bytes[cursor + 1]
     const vb    = bytes.slice(cursor + 2, cursor + 1 + len)
     cursor     += 1 + len
     const info  = SERVICE_DATA_TYPE_MAP[type] || { name: `Unknown(${h(type, 2)})` }
-    fields.push({ type: h(type, 2), name: info.name, raw: bytesToHex(vb) })
+    const legacyField = MASK_BIT_DEFS.find(def => 0x10 - def.bit === type)
+    const field = { type: h(type, 2), name: info.name, raw: bytesToHex(vb) }
+    if (legacyField && (info.size == null || info.size === vb.length)) {
+      field.value = parseMaskField(legacyField.name, vb)
+    }
+    fields.push(field)
   }
 
   return { pid: h(pid), fields }
@@ -999,7 +1021,8 @@ function analyzeCommandPacketBytes(bytes, issues) {
 function analyzeCommandPayloadBytes(commandId, payload, payloadOffset, issues) {
   switch (commandId) {
     case 0x0001: {
-      const looksLikeResponse = payload.length % 2 !== 0 || (payload.length >= 2 && readU16(payload, 0) === 0x0000)
+      const firstWord = payload.length >= 2 ? readU16(payload, 0) : null
+      const looksLikeResponse = payload.length % 2 !== 0 || firstWord === 0x0000 || (firstWord & 0x8000) !== 0
       if (looksLikeResponse) {
         analyzeFeatureListBytes(payload, true, payloadOffset, issues)
       } else {
@@ -1013,6 +1036,16 @@ function analyzeCommandPayloadBytes(commandId, payload, payloadOffset, issues) {
     case 0x0003:
     case 0x0004:
       analyzeFeatureListBytes(payload, true, payloadOffset, issues)
+      return
+    case 0x0104:
+      if (payload.length !== 12) {
+        issues.push({
+          severity: 'error',
+          code: 'ota-notification-length-invalid',
+          message: `OTA Notification payload must be 12 bytes, got ${payload.length}`,
+          offset: payloadOffset,
+        })
+      }
       return
     default:
       return
@@ -1203,12 +1236,21 @@ function analyzeExtendedServiceDataBytes(bytes, baseOffset, issues) {
     }
 
     const type = bytes[cursor + 1]
+    const valueLength = len - 1
+    const info = SERVICE_DATA_TYPE_MAP[type]
     if (!SERVICE_DATA_TYPE_MAP[type]) {
       issues.push({
         severity: 'warning',
         code: 'unknown-service-data-type',
         message: `Unknown extended service data type ${h(type, 2)}`,
         offset: baseOffset + cursor + 1,
+      })
+    } else if (info.size != null && info.size !== valueLength) {
+      issues.push({
+        severity: 'warning',
+        code: 'service-data-length-mismatch',
+        message: `${h(type, 2)} (${info.name}) expects ${info.size} byte(s), got ${valueLength}`,
+        offset: baseOffset + cursor,
       })
     }
 
@@ -1280,7 +1322,8 @@ function parseCommandPacket(bytes) {
       // GET Request payload: even-length list of 2-byte feature IDs (no status code).
       // GET Response payload: starts with status code (2 bytes) then feature list.
       // Detect by: odd payload length OR first 2 bytes == 0x0000 (success status).
-      const looksLikeResponse = pb.length % 2 !== 0 || readU16(pb, 0) === 0x0000
+      const firstWord = pb.length >= 2 ? readU16(pb, 0) : null
+      const looksLikeResponse = pb.length % 2 !== 0 || firstWord === 0x0000 || (firstWord & 0x8000) !== 0
       payload = looksLikeResponse ? parseFeatureList(pb, true) : parseGetRequest(pb)
       break
     }
@@ -1319,8 +1362,9 @@ export function jsonToHex(obj) {
       return bytesToHex(serializeLegacyServiceData(obj))
     }
     case 'BLE_AdvData':                 return bytesToHex(serializeAdvDataFromLegacy(obj))
+    case 'BLE_Extended_Service_Data':   return bytesToHex(serializeExtendedServiceData(obj))
     default:
-      throw new Error(`Cannot serialize type "${obj.type}" — only Command_Packet, BLE_Legacy_Service_Data and BLE_AdvData are supported`)
+      throw new Error(`Cannot serialize type "${obj.type}" — unsupported packet type`)
   }
 }
 
@@ -1331,11 +1375,16 @@ function serializeCommandPacket(obj) {
 
   let pb = []
   switch (commandId) {
-    case 0x0001: pb = serializeGetRequest(payload);           break
-    case 0x0002: pb = serializeFeatureList(payload, false);   break
+    case 0x0001:
+      pb = payload.statusCode ? serializeFeatureList(payload, true) : serializeGetRequest(payload)
+      break
+    case 0x0002:
+      pb = payload.statusCode && !payload.features ? serializeStatusCode(payload.statusCode) : serializeFeatureList(payload, false)
+      break
     case 0x0003: case 0x0004:
                  pb = serializeFeatureList(payload, true);    break
     case 0x0102: pb = serializeSendOTAData(payload);          break
+    case 0x0104: pb = serializeOTANotification(payload);      break
     default:
       if (payload.raw) pb = hexToBytes(payload.raw.replace(/\s/g, ''))
   }
@@ -1360,13 +1409,18 @@ function serializeGetRequest(payload) {
 
 function serializeFeatureList(payload, withStatus) {
   const out = []
-  if (withStatus) out.push(...writeU16(0x0000))
+  if (withStatus) out.push(...serializeStatusCode(payload.statusCode))
   for (const f of payload.features || []) {
     const fid = parseInt(f.featureId, 16)
     const vb  = serializeFeatureValue(fid, f)
     out.push(...writeU16(fid), ...writeU16(vb.length), ...vb)
   }
   return out
+}
+
+function serializeStatusCode(statusCode) {
+  const value = typeof statusCode === 'object' ? statusCode.code : statusCode
+  return writeU16(value == null ? 0 : Number.parseInt(value, 16))
 }
 
 function serializeFeatureValue(featureId, data) {
@@ -1379,6 +1433,16 @@ function serializeSendOTAData(payload) {
   const out = writeU32(payload.absoluteOffset || 0)
   if (payload.data) out.push(...hexToBytes(payload.data.replace(/\s/g, '')))
   return out
+}
+
+function serializeOTANotification(payload) {
+  const percentageRaw = payload.percentageRaw ?? Math.round((payload.percentage ?? 0) * 100)
+  return [
+    ...serializeStatusCode(payload.statusCode),
+    ...writeU16(percentageRaw),
+    ...writeU32(payload.absoluteOffset ?? 0),
+    ...writeU32(payload.lengthToRead ?? 0),
+  ]
 }
 
 function serializeLegacyServiceData(obj) {
@@ -1413,6 +1477,20 @@ function serializeAdvDataFromLegacy(obj) {
   return out
 }
 
+function serializeExtendedServiceData(obj) {
+  const pid = Number.parseInt(obj.pid, 16)
+  if (!Number.isInteger(pid) || pid < 0 || pid > 0xFFFF) throw new Error('BLE extended service data requires a valid pid')
+  const out = writeU16(pid)
+  for (const field of obj.fields || []) {
+    const type = Number.parseInt(field.type, 16)
+    const value = field.raw ? hexToBytes(String(field.raw)) : []
+    if (!Number.isInteger(type) || type < 0 || type > 0xFF) throw new Error('Extended service field requires a valid type')
+    if (value.length > 254) throw new Error(`Extended service field ${h(type, 2)} exceeds 254 bytes`)
+    out.push(value.length + 1, type, ...value)
+  }
+  return out
+}
+
 function encodeMaskField(name, value) {
   // Best-effort re-encoding from parsed JSON
   switch (name) {
@@ -1425,7 +1503,7 @@ function encodeMaskField(name, value) {
     case 'colorId':         return [typeof value === 'object' ? parseInt(value.raw, 16) : (value | 0)]
     case 'batteryInfo': {
       const charging = value.charging ? 0x80 : 0
-      const lvl      = value.low ? 0x7F : (value.level & 0x7F)
+      const lvl      = value.level & 0x7F
       return [charging | lvl]
     }
     case 'stereoGroupId': {
@@ -1434,6 +1512,7 @@ function encodeMaskField(name, value) {
     }
     case 'deviceMiscInfo': {
       if (value?.raw) return writeU16(parseInt(value.raw, 16))
+      const bassBoostCode = ['Off', 'Low', 'Medium', 'High'].indexOf(value.bassBoost)
       const v =
         ((value.connectable ? 1 : 0) << 15) |
         ((value.standby ? 1 : 0) << 14) |
@@ -1441,28 +1520,36 @@ function encodeMaskField(name, value) {
         ((value.led ? 1 : 0) << 12) |
         ((value.mic1 ? 1 : 0) << 11) |
         ((value.mic2 ? 1 : 0) << 10) |
+        ((Math.max(0, bassBoostCode) & 0x3) << 8) |
+        ((value.brEdrSupported ? 1 : 0) << 7) |
         ((value.jblApp ? 1 : 0) << 6) |
         ((value.dongle ? 1 : 0) << 5) |
         ((value.soundbar ? 1 : 0) << 4) |
         ((value.usb ? 1 : 0) << 3) |
-        ((value.aux ? 1 : 0) << 2)
+        ((value.aux ? 1 : 0) << 2) |
+        ((value.hotelMode ? 1 : 0) << 1)
       return writeU16(v)
     }
     case 'partyMethodInfo': {
       if (value?.raw) return [parseInt(value.raw, 16)]
       const v =
-        ((value.auracast ? 1 : 0) << 7) |
-        ((value.lls ? 1 : 0) << 6) |
-        ((value.oneCast ? 1 : 0) << 5)
+        ((value.auracastSupported ? 1 : 0) << 7) |
+        ((value.longLastingStereoSupported ? 1 : 0) << 6)
       return [v]
     }
     case 'partyInfo': {
       if (value?.raw) return writeU16(parseInt(value.raw, 16))
-      const groupBits = value.groupType === 'Party' ? 0x1 : value.groupType === 'Stereo' ? 0x2 : 0x0
+      const groupBits = ['Single', 'Party (Auracast / PartyTogether)', 'Stereo'].indexOf(value.groupType)
+      const connectionBits = ['Not connected', 'Connecting', 'Connected', 'Wired (Daisy Chain)'].indexOf(value.connectionStatus)
+      const roleBits = ['Normal', 'Secondary', 'Primary'].indexOf(value.role)
+      const channelBits = ['Full channel', 'Left channel', 'Right channel'].indexOf(value.channelType)
       const v =
-        ((value.partyOn ? 1 : 0) << 15) |
+        ((value.partyStatus ? 1 : 0) << 15) |
         ((groupBits & 0x3) << 13) |
-        (value.canJoin ? 1 : 0)
+        ((Math.max(0, connectionBits) & 0x3) << 11) |
+        ((Math.max(0, roleBits) & 0x3) << 9) |
+        ((Math.max(0, channelBits) & 0x3) << 7) |
+        ((value.partyJoinable ? 1 : 0) << 6)
       return writeU16(v)
     }
     case 'partyLightInfo': {

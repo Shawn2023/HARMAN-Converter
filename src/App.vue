@@ -8,7 +8,7 @@
         </div>
         <div class="header-title">
           <span class="title-main">HARMAN Protocol Converter</span>
-          <span class="title-sub">v5.0.10 — Binary ↔ JSON</span>
+          <span class="title-sub">v5.0.13 — Binary ↔ JSON</span>
         </div>
       </div>
 
